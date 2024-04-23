@@ -1,0 +1,3193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>718</width>
+    <height>562</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Device Manager</string>
+  </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>false</bool>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QTabWidget" name="main_tab">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>680</width>
+      <height>541</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="network_main">
+     <attribute name="title">
+      <string>Network</string>
+     </attribute>
+     <widget class="QTabWidget" name="network_tab">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>651</width>
+        <height>461</height>
+       </rect>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="network_ethernet">
+       <attribute name="title">
+        <string>Ethernet</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget">
+        <property name="geometry">
+         <rect>
+          <x>70</x>
+          <y>30</y>
+          <width>481</width>
+          <height>221</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="network_status_grid">
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_dhcp">
+           <property name="text">
+            <string>DHCP</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_gateway">
+           <property name="text">
+            <string>Gateway</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_mac">
+           <property name="text">
+            <string>Mac Address</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_ip_address">
+           <property name="text">
+            <string>IP Address</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_subnetmask">
+           <property name="text">
+            <string>Subnet mask</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="label_dns2">
+           <property name="text">
+            <string>DNS2</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0">
+          <widget class="QLabel" name="label_ip_self_adaption">
+           <property name="text">
+            <string>IP Self adaption</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_dns1">
+           <property name="text">
+            <string>DNS1</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="2">
+          <widget class="QRadioButton" name="radio_ip_self_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">network_ethernet_ipself_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="7" column="3">
+          <widget class="QRadioButton" name="radio_ip_self_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">network_ethernet_ipself_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="2" colspan="2">
+          <widget class="QLineEdit" name="mac_address">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2" colspan="2">
+          <widget class="QLineEdit" name="ipv4_addr"/>
+         </item>
+         <item row="3" column="2" colspan="2">
+          <widget class="QLineEdit" name="ipv4_mask"/>
+         </item>
+         <item row="4" column="2" colspan="2">
+          <widget class="QLineEdit" name="ipv4_gateway"/>
+         </item>
+         <item row="5" column="2" colspan="2">
+          <widget class="QLineEdit" name="dns1"/>
+         </item>
+         <item row="6" column="2" colspan="2">
+          <widget class="QLineEdit" name="dns2"/>
+         </item>
+         <item row="1" column="2">
+          <widget class="QRadioButton" name="network_ethernet_dhcp_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">network_ethernet_dhcp_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QRadioButton" name="network_ethernet_dhcp_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">network_ethernet_dhcp_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="network_utp">
+       <attribute name="title">
+        <string>UDP</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_3">
+        <property name="geometry">
+         <rect>
+          <x>90</x>
+          <y>70</y>
+          <width>481</width>
+          <height>151</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="udp_grid">
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_multicast_play_address">
+           <property name="text">
+            <string>UDP Multicast Play Address</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_muticast_ip">
+           <property name="text">
+            <string>Multicast IP</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_multicast_port">
+           <property name="text">
+            <string>Multicast Port</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="network_ethernet_udp_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">network_udp_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_videostream">
+           <property name="text">
+            <string>Video Stream</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_open_multitask">
+           <property name="text">
+            <string>Open Multicast</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="network_ethernet_udp_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">network_udp_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QComboBox" name="network_udp_stream">
+           <item>
+            <property name="text">
+             <string>Main stream</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Sub stream</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="2" column="1" colspan="2">
+          <widget class="QLineEdit" name="network_multicast_ip"/>
+         </item>
+         <item row="4" column="1" colspan="2">
+          <widget class="QLineEdit" name="upd_multicast_play_address">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" colspan="2">
+          <widget class="QSpinBox" name="udp_port">
+           <property name="maximum">
+            <number>65535</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="network_rtmp">
+       <attribute name="title">
+        <string>RTMP</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_4">
+        <property name="geometry">
+         <rect>
+          <x>90</x>
+          <y>40</y>
+          <width>421</width>
+          <height>241</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="rtmp_grid">
+         <item row="6" column="0">
+          <widget class="QLabel" name="label_rtmp_play_address">
+           <property name="text">
+            <string>RTMP Play Address</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1" colspan="2">
+          <widget class="QLineEdit" name="app_name"/>
+         </item>
+         <item row="6" column="1" colspan="2">
+          <widget class="QLineEdit" name="rtmp_play_address">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_app_name">
+           <property name="text">
+            <string>App Name</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="network_ethernet_rtmp_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QComboBox" name="stream_type">
+           <item>
+            <property name="text">
+             <string>Main stream</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Sub stream</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_remote_host">
+           <property name="text">
+            <string>Remote Host</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_stream_id">
+           <property name="text">
+            <string>Stream ID</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_remote_port">
+           <property name="text">
+            <string>Remote Port</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1" colspan="2">
+          <widget class="QLineEdit" name="stream_id"/>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_rtmp">
+           <property name="text">
+            <string>RTMP</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="network_ethernet_rtmp_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_stream">
+           <property name="text">
+            <string>Stream</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" colspan="2">
+          <widget class="QSpinBox" name="remote_port">
+           <property name="maximum">
+            <number>65535</number>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1" colspan="2">
+          <widget class="QLineEdit" name="remote_host"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="horizontalLayoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>250</x>
+        <y>480</y>
+        <width>160</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QPushButton" name="btn_network_apply">
+         <property name="text">
+          <string>Apply</string>
+         </property>
+         <property name="default">
+          <bool>false</bool>
+         </property>
+         <property name="flat">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_network_cancel">
+         <property name="text">
+          <string>Cancel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="media_main">
+     <attribute name="title">
+      <string>Media</string>
+     </attribute>
+     <widget class="QTabWidget" name="media_tab">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>650</width>
+        <height>461</height>
+       </rect>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="media_encode">
+       <attribute name="title">
+        <string>Encode</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_5">
+        <property name="geometry">
+         <rect>
+          <x>100</x>
+          <y>40</y>
+          <width>401</width>
+          <height>161</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_encode_mainstream_grid">
+         <item row="5" column="2">
+          <widget class="QSlider" name="main_stream_keyframe_interval_slider">
+           <property name="minimum">
+            <number>5</number>
+           </property>
+           <property name="maximum">
+            <number>300</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_main_key_frame">
+           <property name="text">
+            <string>Key frame interval</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_main_encode_format">
+           <property name="text">
+            <string>Encode Format</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_main_resolution">
+           <property name="text">
+            <string>Resolution</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_man_bps">
+           <property name="text">
+            <string>Bitrate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_main_framerate">
+           <property name="text">
+            <string>Framerate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_main_bitrate">
+           <property name="text">
+            <string>Bitrate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QSlider" name="main_stream_framerate_slider">
+           <property name="minimum">
+            <number>5</number>
+           </property>
+           <property name="maximum">
+            <number>30</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QSlider" name="main_stream_bps_slider">
+           <property name="maximumSize">
+            <size>
+             <width>8000</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="minimum">
+            <number>256</number>
+           </property>
+           <property name="maximum">
+            <number>8000</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="main_stream_framerate">
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1" colspan="2">
+          <widget class="QComboBox" name="main_stream_bitrate">
+           <item>
+            <property name="text">
+             <string>CBR</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>VBR</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QComboBox" name="main_stream_resolve"/>
+         </item>
+         <item row="0" column="1" colspan="2">
+          <widget class="QComboBox" name="main_stream_encode_format"/>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="main_stream_bps">
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QLineEdit" name="main_stream_keyframe_interval">
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_6">
+        <property name="geometry">
+         <rect>
+          <x>100</x>
+          <y>240</y>
+          <width>401</width>
+          <height>161</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_encode_substream_grid">
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_sub_resolution">
+           <property name="text">
+            <string>Resolution</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QSlider" name="sub_stream_framerate_slider">
+           <property name="minimum">
+            <number>5</number>
+           </property>
+           <property name="maximum">
+            <number>30</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_sub_framerate">
+           <property name="text">
+            <string>Framerate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_sub_bps">
+           <property name="text">
+            <string>Bitrate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="2">
+          <widget class="QSlider" name="sub_stream_keyframe_interval_slider">
+           <property name="minimum">
+            <number>5</number>
+           </property>
+           <property name="maximum">
+            <number>300</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_sub_encode_format">
+           <property name="text">
+            <string>Encode Format</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QSlider" name="sub_stream_bps_slider">
+           <property name="maximumSize">
+            <size>
+             <width>8000</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="minimum">
+            <number>256</number>
+           </property>
+           <property name="maximum">
+            <number>8000</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_sub_key_frame">
+           <property name="text">
+            <string>Key frame interval</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_sub_bitrate">
+           <property name="text">
+            <string>Bitrate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="sub_stream_framerate">
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="sub_stream_bps">
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QLineEdit" name="sub_stream_keyframe_interval">
+           <property name="maximumSize">
+            <size>
+             <width>40</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1" colspan="2">
+          <widget class="QComboBox" name="sub_stream_encode_format"/>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QComboBox" name="sub_stream_resolve"/>
+         </item>
+         <item row="2" column="1" colspan="2">
+          <widget class="QComboBox" name="sub_stream_bitrate">
+           <item>
+            <property name="text">
+             <string>CBR</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>VBR</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QLabel" name="label_main_stream">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>20</y>
+          <width>71</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Main Stream</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label_sub_stream">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>220</y>
+          <width>71</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Sub Stream</string>
+        </property>
+       </widget>
+       <widget class="Line" name="split_line">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>210</y>
+          <width>451</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="media_video">
+       <attribute name="title">
+        <string>Video</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_7">
+        <property name="geometry">
+         <rect>
+          <x>390</x>
+          <y>20</y>
+          <width>231</width>
+          <height>201</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_video_basic_grid">
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_saturation">
+           <property name="text">
+            <string>Saturation</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_brightness">
+           <property name="text">
+            <string>Brightness</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2" colspan="2">
+          <widget class="QSlider" name="contrast_slider">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="3">
+          <widget class="QCheckBox" name="vertical_flip">
+           <property name="text">
+            <string>Vertical</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2" colspan="2">
+          <widget class="QSlider" name="sharpness_slider">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2" colspan="2">
+          <widget class="QSlider" name="saturation_slider">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2" colspan="2">
+          <widget class="QSlider" name="backlight_slider">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_contrast">
+           <property name="text">
+            <string>Contrast</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_sharpness">
+           <property name="text">
+            <string>Sharpness</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_backlight">
+           <property name="text">
+            <string>Backlight</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_flip">
+           <property name="text">
+            <string>Flip</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2" colspan="2">
+          <widget class="QSlider" name="brightness_slider">
+           <property name="mouseTracking">
+            <bool>false</bool>
+           </property>
+           <property name="statusTip">
+            <string/>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="invertedAppearance">
+            <bool>false</bool>
+           </property>
+           <property name="tickPosition">
+            <enum>QSlider::NoTicks</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="brightness">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="contrast">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLineEdit" name="saturation">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="backlight">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="sharpness">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1" colspan="2">
+          <widget class="QCheckBox" name="horizontal_flip">
+           <property name="text">
+            <string>Horizontal</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_8">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>280</y>
+          <width>601</width>
+          <height>121</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_status_advanced_grid">
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="AE_sensitivity">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_ae_sensitivity">
+           <property name="text">
+            <string>AE Sensitivity</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="4">
+          <widget class="QLineEdit" name="AE_tolerance">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="5">
+          <widget class="QSlider" name="AE_tolerance_slider">
+           <property name="maximum">
+            <number>255</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QLabel" name="label_3dnr_enhancement">
+           <property name="text">
+            <string>3D NR Enhancement</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QSlider" name="AE_sensitivity_slider">
+           <property name="maximum">
+            <number>255</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QComboBox" name="wide_dynamic">
+           <item>
+            <property name="text">
+             <string>Disable</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Auto</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Manual</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLabel" name="label_ae_tolerance">
+           <property name="text">
+            <string>AE Tolerance</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="5">
+          <widget class="QSlider" name="noise_reduction_3d_enhancement_slider">
+           <property name="maximum">
+            <number>255</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="4">
+          <widget class="QLineEdit" name="noise_reduction_3d_enhancement">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_wide_dynamic">
+           <property name="text">
+            <string>Wide Dynamic</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QLabel" name="label_wdr_enhancement">
+           <property name="text">
+            <string>WDR Enhancement</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="4">
+          <widget class="QLineEdit" name="wide_dynamic_enhancement">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="5">
+          <widget class="QSlider" name="wide_dynamic_enhancement_slider">
+           <property name="maximum">
+            <number>255</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_3dnr">
+           <property name="text">
+            <string>3D Noisce Reduction</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1" colspan="2">
+          <widget class="QComboBox" name="noise_reduction_3d">
+           <item>
+            <property name="text">
+             <string>Disable</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Auto</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Manual</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGraphicsView" name="media_video_graphic_view">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>20</y>
+          <width>350</width>
+          <height>241</height>
+         </rect>
+        </property>
+        <property name="cursor" stdset="0">
+         <cursorShape>ArrowCursor</cursorShape>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="media_audio">
+       <attribute name="title">
+        <string>Audio</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_9">
+        <property name="geometry">
+         <rect>
+          <x>140</x>
+          <y>30</y>
+          <width>341</width>
+          <height>121</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_audio_sample_grid">
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_collection_volume">
+           <property name="text">
+            <string>Collect Volumn</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QSlider" name="play_volume_slider">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_samplebit">
+           <property name="text">
+            <string>Sample Bit</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QSlider" name="collect_volume_slider">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_samplerate">
+           <property name="text">
+            <string>Sample Rate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_play_volume">
+           <property name="text">
+            <string>Play Volumn</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLineEdit" name="collect_volume">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="play_volume">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1" colspan="2">
+          <widget class="QComboBox" name="sample_rate">
+           <item>
+            <property name="text">
+             <string>8000</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QComboBox" name="sample_bit">
+           <item>
+            <property name="text">
+             <string>16</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_10">
+        <property name="geometry">
+         <rect>
+          <x>140</x>
+          <y>170</y>
+          <width>341</width>
+          <height>80</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_smaple_codec_grid">
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="audio_encode_enabled_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="audio_encode_enabled_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_audio_codec">
+           <property name="text">
+            <string>Codec</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_audio_format">
+           <property name="text">
+            <string>Format</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QComboBox" name="media_audio_codec_format">
+           <item>
+            <property name="text">
+             <string>G711A</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>G711U</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="media_osd">
+       <attribute name="title">
+        <string>OSD</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_11">
+        <property name="geometry">
+         <rect>
+          <x>40</x>
+          <y>300</y>
+          <width>291</width>
+          <height>97</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_osd_title_grid">
+         <item row="3" column="1" colspan="2">
+          <widget class="QLineEdit" name="osd_title_name"/>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_osd_title">
+           <property name="text">
+            <string>Title</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1" colspan="2">
+          <widget class="QDoubleSpinBox" name="osd_title_y"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_osd_title_y">
+           <property name="text">
+            <string>Y Coordinate(%)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QDoubleSpinBox" name="osd_title_x"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_osd_title_x">
+           <property name="text">
+            <string>X coordinate(%)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="osd_title_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">media_osd_title_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="osd_title_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">media_osd_title_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_osd_enable_title">
+           <property name="text">
+            <string>Enable Title</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_12">
+        <property name="geometry">
+         <rect>
+          <x>360</x>
+          <y>300</y>
+          <width>241</width>
+          <height>123</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_osd_datetime_grid">
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="osd_datetime_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_osd_time_format">
+           <property name="text">
+            <string>Time Format</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" colspan="2">
+          <widget class="QComboBox" name="osd_datetime_time_format">
+           <item>
+            <property name="text">
+             <string>24 Hours</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>12 Hours</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_osd_datetime_y">
+           <property name="text">
+            <string>Y Coordinate(%)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_osd_date_format">
+           <property name="text">
+            <string>Date Format</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_osd_datetime_x">
+           <property name="text">
+            <string>X Coordinate(%)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="osd_datetime_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1" colspan="2">
+          <widget class="QComboBox" name="osd_datetime_date_format">
+           <item>
+            <property name="text">
+             <string>YYYY-MM-DD(2020-10-15)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>MM-DD-YYYY(10-15-2020)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>DD-MM-YYYY(15-10-2020)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>YYYY/MM/DD(2020/10/15)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>MM/DD/YYYY(10/15/2020)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>DD/MM/YYYY(15/10/2020)</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QDoubleSpinBox" name="osd_datetime_x"/>
+         </item>
+         <item row="2" column="1" colspan="2">
+          <widget class="QDoubleSpinBox" name="osd_datetime_y"/>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_osd_enable_datetime">
+           <property name="text">
+            <string>Date &amp; Time</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGraphicsView" name="media_osd_graphic_view">
+        <property name="geometry">
+         <rect>
+          <x>63</x>
+          <y>10</y>
+          <width>510</width>
+          <height>281</height>
+         </rect>
+        </property>
+        <property name="cursor" stdset="0">
+         <cursorShape>ArrowCursor</cursorShape>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="media_privacy">
+       <attribute name="title">
+        <string>Privacy Mask</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_13">
+        <property name="geometry">
+         <rect>
+          <x>210</x>
+          <y>310</y>
+          <width>221</width>
+          <height>119</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="media_privacy_grid">
+         <item row="4" column="1" alignment="Qt::AlignHCenter">
+          <widget class="QCheckBox" name="privacy_zone3_enabled">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1" alignment="Qt::AlignHCenter">
+          <widget class="QLabel" name="label_privacymask_enable">
+           <property name="text">
+            <string>Enable</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" alignment="Qt::AlignHCenter">
+          <widget class="QRadioButton" name="privacy_zone1_sel">
+           <property name="text">
+            <string>2</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">media_privacy_zone_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="1" alignment="Qt::AlignHCenter">
+          <widget class="QCheckBox" name="privacy_zone0_enabled">
+           <property name="text">
+            <string/>
+           </property>
+           <property name="tristate">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" alignment="Qt::AlignHCenter">
+          <widget class="QCheckBox" name="privacy_zone2_enabled">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0" alignment="Qt::AlignHCenter">
+          <widget class="QRadioButton" name="privacy_zone2_sel">
+           <property name="text">
+            <string>3</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">media_privacy_zone_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="4" column="0" alignment="Qt::AlignHCenter">
+          <widget class="QRadioButton" name="privacy_zone3_sel">
+           <property name="text">
+            <string>4</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">media_privacy_zone_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="0" alignment="Qt::AlignHCenter">
+          <widget class="QRadioButton" name="privacy_zone0_sel">
+           <property name="layoutDirection">
+            <enum>Qt::LeftToRight</enum>
+           </property>
+           <property name="text">
+            <string>1</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">media_privacy_zone_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="2" column="1" alignment="Qt::AlignHCenter">
+          <widget class="QCheckBox" name="privacy_zone1_enabled">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0" alignment="Qt::AlignHCenter">
+          <widget class="QLabel" name="label_privacymask_zone">
+           <property name="text">
+            <string>Zone</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGraphicsView" name="media_privacy_graphic_view">
+        <property name="geometry">
+         <rect>
+          <x>63</x>
+          <y>10</y>
+          <width>510</width>
+          <height>281</height>
+         </rect>
+        </property>
+        <property name="cursor" stdset="0">
+         <cursorShape>CrossCursor</cursorShape>
+        </property>
+       </widget>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="horizontalLayoutWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>250</x>
+        <y>480</y>
+        <width>160</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QPushButton" name="btn_media_apply">
+         <property name="text">
+          <string>Apply</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_media_cancel">
+         <property name="text">
+          <string>Cancel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="detection_main">
+     <attribute name="title">
+      <string>Detection</string>
+     </attribute>
+     <widget class="QTabWidget" name="detection_tab">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>650</width>
+        <height>461</height>
+       </rect>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="detect_human">
+       <attribute name="title">
+        <string>Human</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_14">
+        <property name="geometry">
+         <rect>
+          <x>110</x>
+          <y>370</y>
+          <width>431</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="detect_human_grid">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_detection_human_enable">
+           <property name="text">
+            <string>Enable</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_detection_human_sensitivity">
+           <property name="text">
+            <string>Sensitvity</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="6">
+          <widget class="QRadioButton" name="radio_detect_human_zone2">
+           <property name="layoutDirection">
+            <enum>Qt::RightToLeft</enum>
+           </property>
+           <property name="text">
+            <string>3</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detect_human_zone_btn_grp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="detection_human_enable_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detect_human_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="5">
+          <widget class="QRadioButton" name="radio_detect_human_zone1">
+           <property name="layoutDirection">
+            <enum>Qt::RightToLeft</enum>
+           </property>
+           <property name="text">
+            <string>2</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detect_human_zone_btn_grp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="4">
+          <widget class="QRadioButton" name="radio_detect_human_zone0">
+           <property name="layoutDirection">
+            <enum>Qt::RightToLeft</enum>
+           </property>
+           <property name="text">
+            <string>1</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detect_human_zone_btn_grp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <widget class="QLabel" name="label_detection_human_zone">
+           <property name="layoutDirection">
+            <enum>Qt::LeftToRight</enum>
+           </property>
+           <property name="text">
+            <string>Zone</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="detection_human_enable_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detect_human_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="detection_human_sensitivity">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="7">
+          <widget class="QRadioButton" name="radio_detect_human_zone3">
+           <property name="layoutDirection">
+            <enum>Qt::RightToLeft</enum>
+           </property>
+           <property name="text">
+            <string>4</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detect_human_zone_btn_grp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="2" colspan="6">
+          <widget class="QSlider" name="detection_human_sensitivity_slider">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGraphicsView" name="detection_human_graphic_view">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>10</y>
+          <width>542</width>
+          <height>342</height>
+         </rect>
+        </property>
+        <property name="cursor" stdset="0">
+         <cursorShape>CrossCursor</cursorShape>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="detect_motion">
+       <attribute name="title">
+        <string>Motion</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_15">
+        <property name="geometry">
+         <rect>
+          <x>110</x>
+          <y>370</y>
+          <width>431</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="detect_motion_grid">
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="detection_motion_enable_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detec_motion_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="detection_motion_enable_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detec_motion_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QSlider" name="detection_motion_sensitivity_slider">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="detection_motion_sensitivity">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_detect_motion_enable">
+           <property name="text">
+            <string>Enable</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_detect_motion_sensitivity">
+           <property name="text">
+            <string>Sensitvity</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGraphicsView" name="detection_motion_graphic_view">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>10</y>
+          <width>542</width>
+          <height>342</height>
+         </rect>
+        </property>
+        <property name="cursor" stdset="0">
+         <cursorShape>CrossCursor</cursorShape>
+        </property>
+       </widget>
+       <widget class="QComboBox" name="detect_motion_ratio_enum">
+        <property name="geometry">
+         <rect>
+          <x>550</x>
+          <y>370</y>
+          <width>69</width>
+          <height>22</height>
+         </rect>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="detect_tamper">
+       <attribute name="title">
+        <string>Tamper</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_16">
+        <property name="geometry">
+         <rect>
+          <x>110</x>
+          <y>370</y>
+          <width>431</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="detect_tamper_grid">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_detection_tamper_enable">
+           <property name="text">
+            <string>Enable</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="detection_tamper_enable_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detec_tamper_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="detection_tamper_enable_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+           <attribute name="buttonGroup">
+            <string notr="true">detec_tamper_btngrp</string>
+           </attribute>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_detection_tamper_sensitivity">
+           <property name="text">
+            <string>Sensitvity</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QSlider" name="detection_tamper_sensitivity_slider">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="singleStep">
+            <number>25</number>
+           </property>
+           <property name="pageStep">
+            <number>25</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="detection_tamper_sensitivity">
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGraphicsView" name="detection_tamper_graphic_view">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>10</y>
+          <width>542</width>
+          <height>342</height>
+         </rect>
+        </property>
+        <property name="cursor" stdset="0">
+         <cursorShape>ArrowCursor</cursorShape>
+        </property>
+       </widget>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="horizontalLayoutWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>250</x>
+        <y>480</y>
+        <width>160</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QPushButton" name="btn_detection_apply">
+         <property name="text">
+          <string>Apply</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_detection_cancel">
+         <property name="text">
+          <string>Cancel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="peripherial_main">
+     <attribute name="title">
+      <string>Peripherial</string>
+     </attribute>
+     <widget class="QTabWidget" name="peripherial_tab">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>650</width>
+        <height>461</height>
+       </rect>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="peri_alarm">
+       <attribute name="title">
+        <string>Alarm</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="peri_serial">
+       <attribute name="title">
+        <string>Serial</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="peri_ptz">
+       <attribute name="title">
+        <string>PTZ</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="peri_sd">
+       <attribute name="title">
+        <string>SD</string>
+       </attribute>
+       <widget class="QProgressBar" name="perisd_sd_volume_bar">
+        <property name="geometry">
+         <rect>
+          <x>160</x>
+          <y>70</y>
+          <width>321</width>
+          <height>23</height>
+         </rect>
+        </property>
+        <property name="value">
+         <number>24</number>
+        </property>
+       </widget>
+       <widget class="QLabel" name="label">
+        <property name="geometry">
+         <rect>
+          <x>150</x>
+          <y>50</y>
+          <width>47</width>
+          <height>13</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Volume</string>
+        </property>
+       </widget>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="horizontalLayoutWidget_4">
+      <property name="geometry">
+       <rect>
+        <x>250</x>
+        <y>480</y>
+        <width>160</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item>
+        <widget class="QPushButton" name="btn_peripherial_apply">
+         <property name="text">
+          <string>Apply</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_peripherial_cancel">
+         <property name="text">
+          <string>Cancel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="system_main">
+     <attribute name="title">
+      <string>System</string>
+     </attribute>
+     <widget class="QTabWidget" name="system_tab">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>650</width>
+        <height>491</height>
+       </rect>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="system_user">
+       <attribute name="title">
+        <string>User</string>
+       </attribute>
+       <widget class="QTreeWidget" name="user_tree">
+        <property name="geometry">
+         <rect>
+          <x>90</x>
+          <y>20</y>
+          <width>441</width>
+          <height>192</height>
+         </rect>
+        </property>
+        <column>
+         <property name="text">
+          <string>No</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Name</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Group</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Enable</string>
+         </property>
+        </column>
+       </widget>
+       <widget class="QWidget" name="horizontalLayoutWidget_6">
+        <property name="geometry">
+         <rect>
+          <x>220</x>
+          <y>420</y>
+          <width>239</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <item>
+          <widget class="QPushButton" name="btn_system_user_add">
+           <property name="text">
+            <string>Add</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_system_user_modify">
+           <property name="text">
+            <string>Modify</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_system_user_delete">
+           <property name="text">
+            <string>Delete</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="system_user_info_widget" native="true">
+        <property name="geometry">
+         <rect>
+          <x>90</x>
+          <y>230</y>
+          <width>441</width>
+          <height>151</height>
+         </rect>
+        </property>
+        <widget class="QWidget" name="gridLayoutWidget_20">
+         <property name="geometry">
+          <rect>
+           <x>50</x>
+           <y>0</y>
+           <width>341</width>
+           <height>141</height>
+          </rect>
+         </property>
+         <layout class="QGridLayout" name="grid_system_user_info">
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_password2">
+            <property name="text">
+             <string>Retype Passord</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QRadioButton" name="system_user_yes">
+            <property name="text">
+             <string>Yes</string>
+            </property>
+            <attribute name="buttonGroup">
+             <string notr="true">system_user_enabled_btngrp</string>
+            </attribute>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_user_group">
+            <property name="text">
+             <string>Group</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_password">
+            <property name="text">
+             <string>Password</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_user_enabled">
+            <property name="text">
+             <string>Enabled</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="2">
+           <widget class="QRadioButton" name="system_user_no">
+            <property name="text">
+             <string>No</string>
+            </property>
+            <attribute name="buttonGroup">
+             <string notr="true">system_user_enabled_btngrp</string>
+            </attribute>
+           </widget>
+          </item>
+          <item row="0" column="1" colspan="2">
+           <widget class="QLineEdit" name="system_user_name"/>
+          </item>
+          <item row="3" column="1" colspan="2">
+           <widget class="QComboBox" name="system_user_group">
+            <item>
+             <property name="text">
+              <string>Viewer</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Operator</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Administrator</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="2" column="1" colspan="2">
+           <widget class="QLineEdit" name="system_user_password2">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="echoMode">
+             <enum>QLineEdit::Password</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="2">
+           <widget class="QLineEdit" name="system_user_password">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="echoMode">
+             <enum>QLineEdit::Password</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_username">
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="system_datetime">
+       <attribute name="title">
+        <string>Date Time</string>
+       </attribute>
+       <widget class="QLabel" name="label_camera_current_datetime">
+        <property name="geometry">
+         <rect>
+          <x>120</x>
+          <y>20</y>
+          <width>211</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Current Camera Date and Time</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="device_datetime">
+        <property name="geometry">
+         <rect>
+          <x>140</x>
+          <y>40</y>
+          <width>121</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>2020/03/25 11:29/30</string>
+        </property>
+       </widget>
+       <widget class="QFrame" name="frame">
+        <property name="geometry">
+         <rect>
+          <x>110</x>
+          <y>60</y>
+          <width>411</width>
+          <height>161</height>
+         </rect>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="QLabel" name="label_camera_datetime_set">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>10</y>
+           <width>244</width>
+           <height>15</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>New Camera Date and Time</string>
+         </property>
+        </widget>
+        <widget class="QRadioButton" name="set_datetime_with_pc">
+         <property name="geometry">
+          <rect>
+           <x>30</x>
+           <y>30</y>
+           <width>259</width>
+           <height>17</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Set this computer's Date and Time</string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">sysem_datetime_set_btngrp</string>
+         </attribute>
+        </widget>
+        <widget class="QLabel" name="pc_datetime">
+         <property name="geometry">
+          <rect>
+           <x>50</x>
+           <y>50</y>
+           <width>259</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>2020/03/25 11:29/30</string>
+         </property>
+         <property name="margin">
+          <number>0</number>
+         </property>
+         <property name="indent">
+          <number>-1</number>
+         </property>
+        </widget>
+        <widget class="QRadioButton" name="set_datetime_manual">
+         <property name="geometry">
+          <rect>
+           <x>30</x>
+           <y>70</y>
+           <width>259</width>
+           <height>17</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Set manually</string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">sysem_datetime_set_btngrp</string>
+         </attribute>
+        </widget>
+        <widget class="QDateEdit" name="system_datetime_date">
+         <property name="geometry">
+          <rect>
+           <x>50</x>
+           <y>90</y>
+           <width>127</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QTimeEdit" name="system_datetime_time">
+         <property name="geometry">
+          <rect>
+           <x>200</x>
+           <y>90</y>
+           <width>101</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="displayFormat">
+          <string>hh:mm:ss</string>
+         </property>
+         <property name="time">
+          <time>
+           <hour>0</hour>
+           <minute>0</minute>
+           <second>7</second>
+          </time>
+         </property>
+        </widget>
+        <widget class="QWidget" name="horizontalLayoutWidget_13">
+         <property name="geometry">
+          <rect>
+           <x>120</x>
+           <y>120</y>
+           <width>179</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_13">
+          <item>
+           <widget class="QPushButton" name="btn_system_datetime_set">
+            <property name="text">
+             <string>Set Date and Time</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+       <widget class="QFrame" name="frame_2">
+        <property name="geometry">
+         <rect>
+          <x>110</x>
+          <y>240</y>
+          <width>411</width>
+          <height>211</height>
+         </rect>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <widget class="QLabel" name="label_datetime_configuration">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>0</y>
+           <width>171</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Configuration</string>
+         </property>
+        </widget>
+        <widget class="QWidget" name="gridLayoutWidget_2">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>20</y>
+           <width>371</width>
+           <height>131</height>
+          </rect>
+         </property>
+         <layout class="QGridLayout" name="system_datetime_grid">
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_ntp_server">
+            <property name="text">
+             <string>NTP Server</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_timezone">
+            <property name="text">
+             <string>Time zone</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QRadioButton" name="radio_ntp_yes">
+            <property name="text">
+             <string>Yes</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_enable_ntp">
+            <property name="text">
+             <string>Enable NTP</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QRadioButton" name="radio_ntp_no">
+            <property name="text">
+             <string>No</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1" colspan="2">
+           <widget class="QSpinBox" name="sync_time"/>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_ntp_sync_time">
+            <property name="text">
+             <string>Sync time(minute)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="2">
+           <widget class="QComboBox" name="timezone"/>
+          </item>
+          <item row="2" column="1" colspan="2">
+           <widget class="QLineEdit" name="ntp_server">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_ntp_port">
+            <property name="text">
+             <string>NTP Port</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1" colspan="2">
+           <widget class="QSpinBox" name="ntp_port">
+            <property name="maximum">
+             <number>65535</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="horizontalLayoutWidget_5">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>170</y>
+           <width>160</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QPushButton" name="btn_system_dateteime_apply">
+            <property name="text">
+             <string>Apply</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_system_datetime_cancel">
+            <property name="text">
+             <string>Cancel</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="system_maintenance">
+       <attribute name="title">
+        <string>Maintenance</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_18">
+        <property name="geometry">
+         <rect>
+          <x>110</x>
+          <y>40</y>
+          <width>331</width>
+          <height>141</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="system_maintenance_restart_grid">
+         <item row="0" column="1">
+          <widget class="QPushButton" name="btn_system_restart">
+           <property name="text">
+            <string>Restart</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_restart">
+           <property name="font">
+            <font>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Restart</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_restore_factory_default">
+           <property name="font">
+            <font>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Restore Factory Default</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btn_system_restore">
+           <property name="text">
+            <string>Restore Factory Default</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="gridLayoutWidget_17">
+        <property name="geometry">
+         <rect>
+          <x>110</x>
+          <y>270</y>
+          <width>412</width>
+          <height>101</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="system_maintenance_schedule_grid">
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_maintenance_enable">
+           <property name="text">
+            <string>Maintenance Day</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="6">
+          <widget class="QCheckBox" name="cksm_fri">
+           <property name="text">
+            <string>Fir</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" colspan="3">
+          <widget class="QTimeEdit" name="system_restart_time">
+           <property name="displayFormat">
+            <string>hh:mm:ss</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QCheckBox" name="cksm_sun">
+           <property name="text">
+            <string>Sun</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3" colspan="2">
+          <widget class="QRadioButton" name="system_maintenance_no">
+           <property name="text">
+            <string>No</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="QRadioButton" name="system_maintenance_yes">
+           <property name="text">
+            <string>Yes</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="4">
+          <widget class="QCheckBox" name="cksm_wed">
+           <property name="text">
+            <string>Wed</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="5">
+          <widget class="QCheckBox" name="cksm_thu">
+           <property name="text">
+            <string>Thu</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QCheckBox" name="cksm_mon">
+           <property name="text">
+            <string>Mon</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QCheckBox" name="cksm_tue">
+           <property name="text">
+            <string>Tue</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="7">
+          <widget class="QCheckBox" name="cksm_sat">
+           <property name="text">
+            <string>Sat</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_maintenace_restart_time">
+           <property name="text">
+            <string>Restart Time</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_system_maintenance_enable">
+           <property name="text">
+            <string>Enable</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="8">
+          <widget class="QLabel" name="label_system_maintenance_schedule">
+           <property name="font">
+            <font>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>System Maintenance Schedule</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="horizontalLayoutWidget_7">
+        <property name="geometry">
+         <rect>
+          <x>230</x>
+          <y>400</y>
+          <width>160</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <widget class="QPushButton" name="btn_system_maintenance_apply">
+           <property name="text">
+            <string>Apply</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_system_maintenance_cancel">
+           <property name="text">
+            <string>Cancel</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="system_about">
+       <attribute name="title">
+        <string>About</string>
+       </attribute>
+       <widget class="QWidget" name="gridLayoutWidget_19">
+        <property name="geometry">
+         <rect>
+          <x>120</x>
+          <y>40</y>
+          <width>351</width>
+          <height>181</height>
+         </rect>
+        </property>
+        <layout class="QGridLayout" name="system_about_grid">
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_device_version">
+           <property name="text">
+            <string>Device Version</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_device_name">
+           <property name="text">
+            <string>Device Name</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_device_uptime">
+           <property name="text">
+            <string>Device Uptime</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_device_firmware">
+           <property name="text">
+            <string>Firmware Version</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="system_about_device_name">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="system_about_device_uptime">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLineEdit" name="system_about_device_version">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLineEdit" name="system_about_firmware_version">
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+ </widget>
+ <tabstops>
+  <tabstop>main_tab</tabstop>
+  <tabstop>network_tab</tabstop>
+  <tabstop>mac_address</tabstop>
+  <tabstop>network_ethernet_dhcp_yes</tabstop>
+  <tabstop>network_ethernet_dhcp_no</tabstop>
+  <tabstop>ipv4_addr</tabstop>
+  <tabstop>ipv4_mask</tabstop>
+  <tabstop>ipv4_gateway</tabstop>
+  <tabstop>dns1</tabstop>
+  <tabstop>dns2</tabstop>
+  <tabstop>radio_ip_self_yes</tabstop>
+  <tabstop>radio_ip_self_no</tabstop>
+  <tabstop>main_stream_keyframe_interval_slider</tabstop>
+  <tabstop>main_stream_framerate_slider</tabstop>
+  <tabstop>network_ethernet_udp_yes</tabstop>
+  <tabstop>network_ethernet_udp_no</tabstop>
+  <tabstop>network_udp_stream</tabstop>
+  <tabstop>network_multicast_ip</tabstop>
+  <tabstop>udp_port</tabstop>
+  <tabstop>upd_multicast_play_address</tabstop>
+  <tabstop>btn_network_apply</tabstop>
+  <tabstop>btn_network_cancel</tabstop>
+  <tabstop>detection_tab</tabstop>
+  <tabstop>detection_human_graphic_view</tabstop>
+  <tabstop>detection_human_enable_yes</tabstop>
+  <tabstop>detection_human_enable_no</tabstop>
+  <tabstop>radio_detect_human_zone0</tabstop>
+  <tabstop>radio_detect_human_zone1</tabstop>
+  <tabstop>radio_detect_human_zone2</tabstop>
+  <tabstop>radio_detect_human_zone3</tabstop>
+  <tabstop>detection_human_sensitivity</tabstop>
+  <tabstop>detection_human_sensitivity_slider</tabstop>
+  <tabstop>btn_detection_apply</tabstop>
+  <tabstop>btn_detection_cancel</tabstop>
+  <tabstop>sub_stream_encode_format</tabstop>
+  <tabstop>peripherial_tab</tabstop>
+  <tabstop>btn_peripherial_apply</tabstop>
+  <tabstop>btn_peripherial_cancel</tabstop>
+  <tabstop>system_tab</tabstop>
+  <tabstop>user_tree</tabstop>
+  <tabstop>system_user_name</tabstop>
+  <tabstop>system_user_password</tabstop>
+  <tabstop>system_user_password2</tabstop>
+  <tabstop>system_user_group</tabstop>
+  <tabstop>system_user_yes</tabstop>
+  <tabstop>system_user_no</tabstop>
+  <tabstop>btn_system_user_add</tabstop>
+  <tabstop>btn_system_user_modify</tabstop>
+  <tabstop>btn_system_user_delete</tabstop>
+  <tabstop>horizontal_flip</tabstop>
+  <tabstop>noise_reduction_3d_enhancement_slider</tabstop>
+  <tabstop>wide_dynamic_enhancement</tabstop>
+  <tabstop>AE_sensitivity</tabstop>
+  <tabstop>wide_dynamic_enhancement_slider</tabstop>
+  <tabstop>AE_sensitivity_slider</tabstop>
+  <tabstop>AE_tolerance</tabstop>
+  <tabstop>noise_reduction_3d_enhancement</tabstop>
+  <tabstop>wide_dynamic</tabstop>
+  <tabstop>noise_reduction_3d</tabstop>
+  <tabstop>AE_tolerance_slider</tabstop>
+  <tabstop>media_video_graphic_view</tabstop>
+  <tabstop>play_volume_slider</tabstop>
+  <tabstop>collect_volume_slider</tabstop>
+  <tabstop>collect_volume</tabstop>
+  <tabstop>play_volume</tabstop>
+  <tabstop>sample_rate</tabstop>
+  <tabstop>sample_bit</tabstop>
+  <tabstop>audio_encode_enabled_no</tabstop>
+  <tabstop>audio_encode_enabled_yes</tabstop>
+  <tabstop>media_audio_codec_format</tabstop>
+  <tabstop>osd_title_yes</tabstop>
+  <tabstop>osd_title_no</tabstop>
+  <tabstop>osd_title_name</tabstop>
+  <tabstop>osd_title_x</tabstop>
+  <tabstop>osd_title_y</tabstop>
+  <tabstop>osd_datetime_yes</tabstop>
+  <tabstop>osd_datetime_time_format</tabstop>
+  <tabstop>osd_datetime_no</tabstop>
+  <tabstop>osd_datetime_date_format</tabstop>
+  <tabstop>osd_datetime_x</tabstop>
+  <tabstop>osd_datetime_y</tabstop>
+  <tabstop>privacy_zone2_enabled</tabstop>
+  <tabstop>privacy_zone0_enabled</tabstop>
+  <tabstop>privacy_zone3_enabled</tabstop>
+  <tabstop>privacy_zone1_enabled</tabstop>
+  <tabstop>main_stream_bps_slider</tabstop>
+  <tabstop>sub_stream_keyframe_interval</tabstop>
+  <tabstop>brightness</tabstop>
+  <tabstop>main_stream_resolve</tabstop>
+  <tabstop>main_stream_bitrate</tabstop>
+  <tabstop>sub_stream_bps_slider</tabstop>
+  <tabstop>sub_stream_keyframe_interval_slider</tabstop>
+  <tabstop>detection_motion_enable_no</tabstop>
+  <tabstop>detection_motion_enable_yes</tabstop>
+  <tabstop>detection_motion_sensitivity_slider</tabstop>
+  <tabstop>detection_motion_sensitivity</tabstop>
+  <tabstop>detection_tamper_enable_no</tabstop>
+  <tabstop>detection_tamper_enable_yes</tabstop>
+  <tabstop>detection_tamper_sensitivity_slider</tabstop>
+  <tabstop>detection_tamper_sensitivity</tabstop>
+  <tabstop>system_datetime_time</tabstop>
+  <tabstop>system_datetime_date</tabstop>
+  <tabstop>radio_ntp_yes</tabstop>
+  <tabstop>radio_ntp_no</tabstop>
+  <tabstop>timezone</tabstop>
+  <tabstop>ntp_server</tabstop>
+  <tabstop>sync_time</tabstop>
+  <tabstop>btn_system_datetime_set</tabstop>
+  <tabstop>set_datetime_with_pc</tabstop>
+  <tabstop>set_datetime_manual</tabstop>
+  <tabstop>system_maintenance_yes</tabstop>
+  <tabstop>system_maintenance_no</tabstop>
+  <tabstop>cksm_mon</tabstop>
+  <tabstop>cksm_tue</tabstop>
+  <tabstop>cksm_wed</tabstop>
+  <tabstop>cksm_thu</tabstop>
+  <tabstop>cksm_fri</tabstop>
+  <tabstop>cksm_sun</tabstop>
+  <tabstop>cksm_sat</tabstop>
+  <tabstop>system_restart_time</tabstop>
+  <tabstop>btn_system_restart</tabstop>
+  <tabstop>btn_system_restore</tabstop>
+  <tabstop>system_about_device_name</tabstop>
+  <tabstop>system_about_device_uptime</tabstop>
+  <tabstop>system_about_device_version</tabstop>
+  <tabstop>system_about_firmware_version</tabstop>
+  <tabstop>stream_type</tabstop>
+  <tabstop>brightness_slider</tabstop>
+  <tabstop>contrast_slider</tabstop>
+  <tabstop>vertical_flip</tabstop>
+  <tabstop>backlight_slider</tabstop>
+  <tabstop>contrast</tabstop>
+  <tabstop>media_tab</tabstop>
+  <tabstop>app_name</tabstop>
+  <tabstop>network_ethernet_rtmp_yes</tabstop>
+  <tabstop>network_ethernet_rtmp_no</tabstop>
+  <tabstop>sharpness_slider</tabstop>
+  <tabstop>stream_id</tabstop>
+  <tabstop>btn_media_apply</tabstop>
+  <tabstop>btn_media_cancel</tabstop>
+  <tabstop>sub_stream_framerate</tabstop>
+  <tabstop>sub_stream_bps</tabstop>
+  <tabstop>sub_stream_resolve</tabstop>
+  <tabstop>sub_stream_bitrate</tabstop>
+  <tabstop>btn_system_dateteime_apply</tabstop>
+  <tabstop>btn_system_datetime_cancel</tabstop>
+  <tabstop>media_osd_graphic_view</tabstop>
+  <tabstop>media_privacy_graphic_view</tabstop>
+  <tabstop>detection_motion_graphic_view</tabstop>
+  <tabstop>main_stream_framerate</tabstop>
+  <tabstop>detection_tamper_graphic_view</tabstop>
+  <tabstop>backlight</tabstop>
+  <tabstop>sharpness</tabstop>
+  <tabstop>saturation</tabstop>
+  <tabstop>main_stream_encode_format</tabstop>
+  <tabstop>main_stream_bps</tabstop>
+  <tabstop>main_stream_keyframe_interval</tabstop>
+  <tabstop>sub_stream_framerate_slider</tabstop>
+  <tabstop>saturation_slider</tabstop>
+  <tabstop>privacy_zone0_sel</tabstop>
+  <tabstop>privacy_zone1_sel</tabstop>
+  <tabstop>privacy_zone2_sel</tabstop>
+  <tabstop>privacy_zone3_sel</tabstop>
+  <tabstop>btn_system_maintenance_apply</tabstop>
+  <tabstop>btn_system_maintenance_cancel</tabstop>
+  <tabstop>ntp_port</tabstop>
+  <tabstop>remote_port</tabstop>
+  <tabstop>rtmp_play_address</tabstop>
+  <tabstop>remote_host</tabstop>
+  <tabstop>detect_motion_ratio_enum</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+ <buttongroups>
+  <buttongroup name="detec_motion_btngrp"/>
+  <buttongroup name="media_osd_title_btngrp"/>
+  <buttongroup name="network_ethernet_dhcp_btngrp"/>
+  <buttongroup name="network_udp_btngrp"/>
+  <buttongroup name="detec_tamper_btngrp"/>
+  <buttongroup name="network_ethernet_ipself_btngrp"/>
+  <buttongroup name="detect_human_zone_btn_grp"/>
+  <buttongroup name="system_user_enabled_btngrp"/>
+  <buttongroup name="detect_human_btngrp"/>
+  <buttongroup name="sysem_datetime_set_btngrp"/>
+  <buttongroup name="media_privacy_zone_btngrp"/>
+ </buttongroups>
+</ui>
