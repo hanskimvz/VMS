@@ -51,6 +51,24 @@ void AddCameraDialog::setupUi() {
     m_nameEdit->setPlaceholderText(tr("Enter camera name"));
     basicLayout->addRow(tr("Name:"), m_nameEdit);
     
+    m_modelEdit = new QLineEdit(basicGroup);
+    m_modelEdit->setPlaceholderText(tr("Device model (auto-detected)"));
+    m_modelEdit->setReadOnly(true);
+    m_modelEdit->setStyleSheet("QLineEdit { background-color: #f0f0f0; color: #666; }");
+    basicLayout->addRow(tr("Model:"), m_modelEdit);
+    
+    m_serialNumberEdit = new QLineEdit(basicGroup);
+    m_serialNumberEdit->setPlaceholderText(tr("Serial number (auto-detected)"));
+    m_serialNumberEdit->setReadOnly(true);
+    m_serialNumberEdit->setStyleSheet("QLineEdit { background-color: #f0f0f0; color: #666; }");
+    basicLayout->addRow(tr("Serial Number:"), m_serialNumberEdit);
+    
+    m_manufacturerEdit = new QLineEdit(basicGroup);
+    m_manufacturerEdit->setPlaceholderText(tr("Manufacturer (auto-detected)"));
+    m_manufacturerEdit->setReadOnly(true);
+    m_manufacturerEdit->setStyleSheet("QLineEdit { background-color: #f0f0f0; color: #666; }");
+    basicLayout->addRow(tr("Manufacturer:"), m_manufacturerEdit);
+    
     m_typeCombo = new QComboBox(basicGroup);
     m_typeCombo->addItem(tr("ONVIF"), static_cast<int>(CameraType::ONVIF));
     m_typeCombo->addItem(tr("RTSP"), static_cast<int>(CameraType::RTSP));
@@ -230,6 +248,8 @@ void AddCameraDialog::setupConnections() {
     // ONVIF signals
     connect(m_onvifClient, &OnvifClient::capabilitiesReceived,
             this, &AddCameraDialog::onCapabilitiesReceived);
+    connect(m_onvifClient, &OnvifClient::deviceInformationReceived,
+            this, &AddCameraDialog::onDeviceInformationReceived);
     connect(m_onvifClient, &OnvifClient::profilesReceived,
             this, &AddCameraDialog::onProfilesReceived);
     connect(m_onvifClient, &OnvifClient::streamUriReceived,
@@ -410,12 +430,37 @@ void AddCameraDialog::onCapabilitiesReceived(const OnvifCapabilities& capabiliti
         
     }
     
+    // Get device information (manufacturer, model, serial number)
+    appendLog(tr("Getting device information..."));
+    QTimer::singleShot(300, this, [this]() {
+        m_onvifClient->getDeviceInformation(m_deviceServiceUrl);
+    });
+    
     appendLog(tr("Getting profiles from: %1").arg(m_mediaServiceUrl));
     
     // Automatically get profiles (with delay to avoid overwhelming camera)
-    QTimer::singleShot(500, this, [this]() {
+    QTimer::singleShot(800, this, [this]() {
         onGetProfiles();
     });
+}
+
+void AddCameraDialog::onDeviceInformationReceived(const OnvifDeviceInfo& info) {
+    appendLog(tr("Device information received:"));
+    appendLog(tr("  Manufacturer: %1").arg(info.manufacturer));
+    appendLog(tr("  Model: %1").arg(info.model));
+    appendLog(tr("  Serial Number: %1").arg(info.serialNumber));
+    appendLog(tr("  Firmware: %1").arg(info.firmwareVersion));
+    
+    // Update UI fields
+    if (!info.model.isEmpty()) {
+        m_modelEdit->setText(info.model);
+    }
+    if (!info.serialNumber.isEmpty()) {
+        m_serialNumberEdit->setText(info.serialNumber);
+    }
+    if (!info.manufacturer.isEmpty()) {
+        m_manufacturerEdit->setText(info.manufacturer);
+    }
 }
 
 void AddCameraDialog::onProfilesReceived(const QList<OnvifProfile>& profiles) {
@@ -655,6 +700,9 @@ CameraInfo AddCameraDialog::getCameraInfo() const {
     CameraInfo info;
     
     info.name = m_nameEdit->text().trimmed();
+    info.model = m_modelEdit->text().trimmed();
+    info.serialNumber = m_serialNumberEdit->text().trimmed();
+    info.manufacturer = m_manufacturerEdit->text().trimmed();
     info.type = static_cast<CameraType>(m_typeCombo->currentData().toInt());
     
     if (info.type == CameraType::ONVIF) {
@@ -681,9 +729,10 @@ CameraInfo AddCameraDialog::getCameraInfo() const {
     return info;
 }
 
-void AddCameraDialog::setDeviceInfo(const QString& ip, const QString& name, const QString& serviceUrl) {
+void AddCameraDialog::setDeviceInfo(const QString& ip, const QString& name, const QString& serviceUrl, const QString& model) {
     m_nameEdit->setText(name.isEmpty() ? ip : name);
     m_ipEdit->setText(ip);
+    m_modelEdit->setText(model);
     
     if (!serviceUrl.isEmpty()) {
         // Parse service URL to extract port and path
@@ -705,6 +754,9 @@ void AddCameraDialog::setCameraInfo(const CameraInfo& info) {
     m_editingCameraId = info.id;
     
     m_nameEdit->setText(info.name);
+    m_modelEdit->setText(info.model);
+    m_serialNumberEdit->setText(info.serialNumber);
+    m_manufacturerEdit->setText(info.manufacturer);
     
     int typeIndex = m_typeCombo->findData(static_cast<int>(info.type));
     if (typeIndex >= 0) {

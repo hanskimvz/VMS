@@ -16,6 +16,7 @@ class OnvifClient;
 class StreamReceiver;
 class VideoWidget;
 struct OnvifCapabilities;
+struct OnvifDeviceInfo;
 struct OnvifProfile;
 
 class AddCameraDialog : public QDialog {
@@ -29,7 +30,7 @@ public:
     QString getCameraId() const { return m_editingCameraId; }
     bool isEditMode() const { return !m_editingCameraId.isEmpty(); }
     
-    void setDeviceInfo(const QString& ip, const QString& name, const QString& serviceUrl = QString());
+    void setDeviceInfo(const QString& ip, const QString& name, const QString& serviceUrl = QString(), const QString& model = QString());
     void setCameraInfo(const CameraInfo& info);
     
 private slots:
@@ -39,6 +40,7 @@ private slots:
     void onMainProfileChanged(int index);
     void onSubProfileChanged(int index);
     void onCapabilitiesReceived(const OnvifCapabilities& capabilities);
+    void onDeviceInformationReceived(const OnvifDeviceInfo& info);
     void onProfilesReceived(const QList<OnvifProfile>& profiles);
     void onStreamUriReceived(const QString& profileToken, const QString& uri);
     void onOnvifError(const QString& message);
@@ -57,6 +59,9 @@ private:
     
     // Basic info
     QLineEdit* m_nameEdit = nullptr;
+    QLineEdit* m_modelEdit = nullptr;
+    QLineEdit* m_serialNumberEdit = nullptr;
+    QLineEdit* m_manufacturerEdit = nullptr;
     QComboBox* m_typeCombo = nullptr;
     
     // ONVIF fields

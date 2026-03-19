@@ -32,10 +32,21 @@ bool Database::open(const QString& dbPath) {
 }
 
 void Database::close() {
+    QString connectionName = m_connectionName;
+    
     if (m_db.isOpen()) {
         m_db.close();
     }
-    QSqlDatabase::removeDatabase(m_connectionName);
+    
+    // Clear the member variable first to release the connection reference
+    m_db = QSqlDatabase();
+    
+    // Now safe to remove the database connection
+    if (!connectionName.isEmpty()) {
+        QSqlDatabase::removeDatabase(connectionName);
+    }
+    
+    m_connectionName.clear();
 }
 
 bool Database::isOpen() const {
@@ -49,6 +60,10 @@ bool Database::createTables() {
         "CREATE TABLE IF NOT EXISTS cameras ("
         "id TEXT PRIMARY KEY,"
         "name TEXT NOT NULL,"
+        "model TEXT,"
+        "serial_number TEXT,"
+        "manufacturer TEXT,"
+        "firmware_version TEXT,"
         "ip TEXT NOT NULL,"
         "port INTEGER DEFAULT 80,"
         "username TEXT,"
@@ -61,6 +76,12 @@ bool Database::createTables() {
         "created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
         ")"
     );
+    
+    // Migration: add new columns if not exists (for existing databases)
+    query.exec("ALTER TABLE cameras ADD COLUMN model TEXT");
+    query.exec("ALTER TABLE cameras ADD COLUMN serial_number TEXT");
+    query.exec("ALTER TABLE cameras ADD COLUMN manufacturer TEXT");
+    query.exec("ALTER TABLE cameras ADD COLUMN firmware_version TEXT");
     
     if (!success) {
         qWarning() << "Failed to create cameras table:" << query.lastError().text();
@@ -96,12 +117,16 @@ bool Database::saveCamera(const CameraInfo& camera) {
     
     query.prepare(
         "INSERT OR REPLACE INTO cameras "
-        "(id, name, ip, port, username, password, rtsp_url, rtsp_url_sub, onvif_path, type, recording) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "(id, name, model, serial_number, manufacturer, firmware_version, ip, port, username, password, rtsp_url, rtsp_url_sub, onvif_path, type, recording) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     
     query.addBindValue(camera.id);
     query.addBindValue(camera.name);
+    query.addBindValue(camera.model);
+    query.addBindValue(camera.serialNumber);
+    query.addBindValue(camera.manufacturer);
+    query.addBindValue(camera.firmwareVersion);
     query.addBindValue(camera.ip);
     query.addBindValue(camera.port);
     query.addBindValue(camera.username);
@@ -138,6 +163,10 @@ QList<CameraInfo> Database::loadCameras() {
         CameraInfo camera;
         camera.id = query.value("id").toString();
         camera.name = query.value("name").toString();
+        camera.model = query.value("model").toString();
+        camera.serialNumber = query.value("serial_number").toString();
+        camera.manufacturer = query.value("manufacturer").toString();
+        camera.firmwareVersion = query.value("firmware_version").toString();
         camera.ip = query.value("ip").toString();
         camera.port = query.value("port").toInt();
         camera.username = query.value("username").toString();
@@ -163,6 +192,10 @@ CameraInfo Database::loadCamera(const QString& id) {
         CameraInfo camera;
         camera.id = query.value("id").toString();
         camera.name = query.value("name").toString();
+        camera.model = query.value("model").toString();
+        camera.serialNumber = query.value("serial_number").toString();
+        camera.manufacturer = query.value("manufacturer").toString();
+        camera.firmwareVersion = query.value("firmware_version").toString();
         camera.ip = query.value("ip").toString();
         camera.port = query.value("port").toInt();
         camera.username = query.value("username").toString();

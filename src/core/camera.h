@@ -22,6 +22,10 @@ enum class CameraStatus {
 struct CameraInfo {
     QString id;
     QString name;
+    QString model;
+    QString serialNumber;
+    QString manufacturer;
+    QString firmwareVersion;
     QString ip;
     int port = 80;
     QString username;
@@ -34,10 +38,11 @@ struct CameraInfo {
     bool recording = false;
     QDateTime lastSeen;
     
-    static CameraInfo create(const QString& name, const QString& ip) {
+    static CameraInfo create(const QString& name, const QString& ip, const QString& model = QString()) {
         CameraInfo info;
         info.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
         info.name = name;
+        info.model = model;
         info.ip = ip;
         return info;
     }

@@ -123,6 +123,7 @@ void DeviceManageWidget::setupSearchedDeviceGroup() {
     m_searchedTable->setHorizontalHeaderLabels({tr("IP"), tr("Name"), tr("Type"), tr("Model"), tr("Service URL")});
     m_searchedTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_searchedTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_searchedTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_searchedTable->setAlternatingRowColors(true);
     m_searchedTable->verticalHeader()->setVisible(false);
     m_searchedTable->horizontalHeader()->setStretchLastSection(true);
@@ -199,11 +200,12 @@ void DeviceManageWidget::setupAddedDeviceGroup() {
     m_addedTable = new QTableWidget(this);
     m_addedTable->setColumnCount(7);
     m_addedTable->setHorizontalHeaderLabels({
-        tr("Device Name"), tr("IP"), tr("Name"), tr("Device SN"), 
+        tr("Name"), tr("IP"), tr("Model"), tr("Device SN"), 
         tr("Device Type"), tr("Connect State"), tr("File System Version")
     });
     m_addedTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_addedTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_addedTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_addedTable->setAlternatingRowColors(true);
     m_addedTable->verticalHeader()->setVisible(false);
     m_addedTable->horizontalHeader()->setStretchLastSection(true);
@@ -256,6 +258,7 @@ void DeviceManageWidget::applyTableStyle(QTableWidget* table) {
 void DeviceManageWidget::onStartSearch() {
     qDebug() << "DeviceManageWidget: Starting search...";
     m_searchedTable->setRowCount(0);
+    updateSearchedGroupTitle();
     m_startSearchBtn->setText(tr("Searching..."));
     m_startSearchBtn->setEnabled(false);
     
@@ -379,8 +382,25 @@ void DeviceManageWidget::flushPendingDevices() {
     m_pendingMdnsDevices.clear();
 }
 
+bool DeviceManageWidget::isDeviceAlreadyAdded(const QString& ip) const {
+    if (!m_cameraManager) return false;
+    
+    QList<CameraInfo> cameras = m_cameraManager->getAllCameras();
+    for (const CameraInfo& cam : cameras) {
+        if (cam.ip == ip) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void DeviceManageWidget::addDeviceToSearchedTable(const OnvifDevice& device) {
-    // Check for duplicate IP
+    // Skip if already added to camera manager
+    if (isDeviceAlreadyAdded(device.address)) {
+        return;
+    }
+    
+    // Check for duplicate IP in search table
     for (int i = 0; i < m_searchedTable->rowCount(); ++i) {
         if (m_searchedTable->item(i, 0)->text() == device.address) {
             return;  // Already exists
@@ -399,9 +419,16 @@ void DeviceManageWidget::addDeviceToSearchedTable(const OnvifDevice& device) {
     // Store service URL and type in first column's data
     m_searchedTable->item(row, 0)->setData(Qt::UserRole, device.serviceUrl);
     m_searchedTable->item(row, 0)->setData(Qt::UserRole + 1, "ONVIF");
+    
+    updateSearchedGroupTitle();
 }
 
 void DeviceManageWidget::addDiscoveredDeviceToTable(const DiscoveredDevice& device) {
+    // Skip if already added to camera manager
+    if (isDeviceAlreadyAdded(device.ip)) {
+        return;
+    }
+    
     // Check for duplicate IP (including ONVIF devices)
     if (m_onvifDiscoveredIPs.contains(device.ip)) {
         return;  // Already discovered via ONVIF
@@ -425,6 +452,8 @@ void DeviceManageWidget::addDiscoveredDeviceToTable(const DiscoveredDevice& devi
     // Store service URL and type in first column's data
     m_searchedTable->item(row, 0)->setData(Qt::UserRole, device.serviceUrl);
     m_searchedTable->item(row, 0)->setData(Qt::UserRole + 1, device.discoveryType);
+    
+    updateSearchedGroupTitle();
 }
 
 void DeviceManageWidget::onAddDevice() {
@@ -450,8 +479,11 @@ void DeviceManageWidget::onAddDevice() {
     if (!ok) return;
     
     if (m_cameraManager) {
+        QString model = m_searchedTable->item(row, 3)->text();
+        
         CameraInfo info;
         info.name = name.isEmpty() ? ip : name;
+        info.model = model;
         info.ip = ip;
         info.port = 80;
         info.username = username;
@@ -584,11 +616,14 @@ void DeviceManageWidget::onSearchedDeviceDoubleClicked(int row, int column) {
     AddCameraDialog dialog(m_onvifClient, this);
     
     if (discoveryType == "ONVIF") {
-        dialog.setDeviceInfo(ip, name, serviceUrl);
+        QString model = m_searchedTable->item(row, 3)->text();
+        dialog.setDeviceInfo(ip, name, serviceUrl, model);
     } else {
         // For mDNS/UPnP devices, set as RTSP type with guessed URL
+        QString model = m_searchedTable->item(row, 3)->text();
         CameraInfo info;
         info.name = name;
+        info.model = model;
         info.ip = ip;
         info.port = 554;
         info.type = CameraType::RTSP;
@@ -642,8 +677,8 @@ void DeviceManageWidget::updateAddedDeviceTable() {
         m_addedTable->setItem(row, 0, nameItem);
         
         m_addedTable->setItem(row, 1, new QTableWidgetItem(cam.ip));
-        m_addedTable->setItem(row, 2, new QTableWidgetItem(cam.name));
-        m_addedTable->setItem(row, 3, new QTableWidgetItem(""));
+        m_addedTable->setItem(row, 2, new QTableWidgetItem(cam.model));
+        m_addedTable->setItem(row, 3, new QTableWidgetItem(cam.serialNumber));
         
         QString typeStr = (cam.type == CameraType::ONVIF) ? "ONVIF" : 
                           (cam.type == CameraType::RTSP) ? "RTSP" : "Generic";
@@ -661,9 +696,21 @@ void DeviceManageWidget::updateAddedDeviceTable() {
         
         m_addedTable->setItem(row, 6, new QTableWidgetItem(""));
     }
+    
+    updateAddedGroupTitle();
 }
 
 void DeviceManageWidget::showEvent(QShowEvent* event) {
     QWidget::showEvent(event);
     refreshAddedDevices();
+}
+
+void DeviceManageWidget::updateSearchedGroupTitle() {
+    int count = m_searchedTable->rowCount();
+    m_searchedGroup->setTitle(tr("Searched device (%1)").arg(count));
+}
+
+void DeviceManageWidget::updateAddedGroupTitle() {
+    int count = m_addedTable->rowCount();
+    m_addedGroup->setTitle(tr("Added device (%1)").arg(count));
 }

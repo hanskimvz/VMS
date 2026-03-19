@@ -223,6 +223,65 @@ QString OnvifClient::createGetServicesRequest() const {
     );
 }
 
+void OnvifClient::getDeviceInformation(const QString& deviceServiceUrl) {
+    QString body = createGetDeviceInformationRequest();
+    QString envelope = createSoapEnvelope(body);
+    
+    QUrl url(deviceServiceUrl);
+    QNetworkRequest request{url};
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
+    request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/GetDeviceInformation\"");
+    
+    if (!m_username.isEmpty()) {
+        QString credentials = QString("%1:%2").arg(m_username, m_password);
+        QByteArray base64Credentials = credentials.toUtf8().toBase64();
+        request.setRawHeader("Authorization", "Basic " + base64Credentials);
+    }
+    
+    QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
+    reply->setProperty("requestType", "GetDeviceInformation");
+    reply->setProperty("deviceUrl", deviceServiceUrl);
+}
+
+QString OnvifClient::createGetDeviceInformationRequest() const {
+    return QString(
+        "<tds:GetDeviceInformation xmlns:tds=\"http://www.onvif.org/ver10/device/wsdl\"/>"
+    );
+}
+
+void OnvifClient::parseDeviceInformationResponse(const QByteArray& data) {
+    qDebug() << "Parsing device information response:" << data.left(1000);
+    
+    QXmlStreamReader xml(data);
+    OnvifDeviceInfo info;
+    
+    while (!xml.atEnd()) {
+        xml.readNext();
+        
+        if (xml.isStartElement()) {
+            QString name = xml.name().toString();
+            
+            if (name == "Manufacturer") {
+                info.manufacturer = xml.readElementText();
+            } else if (name == "Model") {
+                info.model = xml.readElementText();
+            } else if (name == "FirmwareVersion") {
+                info.firmwareVersion = xml.readElementText();
+            } else if (name == "SerialNumber") {
+                info.serialNumber = xml.readElementText();
+            } else if (name == "HardwareId") {
+                info.hardwareId = xml.readElementText();
+            }
+        }
+    }
+    
+    qDebug() << "Device info - Manufacturer:" << info.manufacturer 
+             << "Model:" << info.model 
+             << "SerialNumber:" << info.serialNumber;
+    
+    emit deviceInformationReceived(info);
+}
+
 void OnvifClient::parseServicesResponse(const QByteArray& data) {
     qDebug() << "=== RAW GetServices Response ===";
     qDebug().noquote() << data;
@@ -558,6 +617,8 @@ void OnvifClient::onHttpFinished(QNetworkReply* reply) {
         parseCapabilitiesResponse(data);
     } else if (requestType == "GetServices") {
         parseServicesResponse(data);
+    } else if (requestType == "GetDeviceInformation") {
+        parseDeviceInformationResponse(data);
     } else if (requestType == "GetProfiles") {
         parseProfilesResponse(data);
     } else if (requestType == "GetStreamUri") {

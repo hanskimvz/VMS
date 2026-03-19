@@ -64,6 +64,9 @@ private:
     void updateAddedDeviceTable();
     
     void flushPendingDevices();
+    bool isDeviceAlreadyAdded(const QString& ip) const;
+    void updateSearchedGroupTitle();
+    void updateAddedGroupTitle();
     
     CameraManager* m_cameraManager = nullptr;
     OnvifClient* m_onvifClient = nullptr;

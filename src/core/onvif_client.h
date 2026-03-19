@@ -28,6 +28,14 @@ struct OnvifCapabilities {
     QString deviceServiceUrl;
 };
 
+struct OnvifDeviceInfo {
+    QString manufacturer;
+    QString model;
+    QString firmwareVersion;
+    QString serialNumber;
+    QString hardwareId;
+};
+
 struct OnvifProfile {
     QString token;
     QString name;
@@ -85,6 +93,7 @@ public:
     
     void getCapabilities(const QString& deviceServiceUrl);
     void getServices(const QString& deviceServiceUrl);
+    void getDeviceInformation(const QString& deviceServiceUrl);
     void getProfiles(const QString& mediaServiceUrl);
     void getStreamUri(const QString& mediaServiceUrl, const QString& profileToken);
     void ptzMove(const QString& ptzServiceUrl, const QString& profileToken, 
@@ -106,6 +115,7 @@ signals:
     void deviceDiscovered(const OnvifDevice& device);
     void discoveryFinished();
     void capabilitiesReceived(const OnvifCapabilities& capabilities);
+    void deviceInformationReceived(const OnvifDeviceInfo& info);
     void profilesReceived(const QList<OnvifProfile>& profiles);
     void streamUriReceived(const QString& profileToken, const QString& uri);
     void networkInterfacesReceived(const QList<NetworkInterface>& interfaces);
@@ -122,6 +132,7 @@ private:
     QString createWsDiscoveryProbe() const;
     QString createGetCapabilitiesRequest() const;
     QString createGetServicesRequest() const;
+    QString createGetDeviceInformationRequest() const;
     QString createGetProfilesRequest() const;
     QString createGetStreamUriRequest(const QString& profileToken) const;
     QString createPtzMoveRequest(const QString& profileToken, PtzAction action, float speed) const;
@@ -133,6 +144,7 @@ private:
     void parseDiscoveryResponse(const QByteArray& data);
     void parseCapabilitiesResponse(const QByteArray& data);
     void parseServicesResponse(const QByteArray& data);
+    void parseDeviceInformationResponse(const QByteArray& data);
     void parseProfilesResponse(const QByteArray& data);
     void parseStreamUriResponse(const QByteArray& data, const QString& profileToken);
     void parseNetworkInterfacesResponse(const QByteArray& data);
