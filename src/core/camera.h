@@ -1,0 +1,54 @@
+#ifndef CAMERA_H
+#define CAMERA_H
+
+#include <QString>
+#include <QUuid>
+#include <QDateTime>
+
+enum class CameraType {
+    ONVIF,
+    RTSP,
+    MJPEG,
+    File
+};
+
+enum class CameraStatus {
+    Offline,
+    Online,
+    Connecting,
+    Error
+};
+
+struct CameraInfo {
+    QString id;
+    QString name;
+    QString ip;
+    int port = 80;
+    QString username;
+    QString password;
+    QString rtspUrl;
+    QString rtspUrlSub;
+    QString onvifPath = "/onvif/device_service";
+    CameraType type = CameraType::ONVIF;
+    CameraStatus status = CameraStatus::Offline;
+    bool recording = false;
+    QDateTime lastSeen;
+    
+    static CameraInfo create(const QString& name, const QString& ip) {
+        CameraInfo info;
+        info.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        info.name = name;
+        info.ip = ip;
+        return info;
+    }
+    
+    QString getOnvifUrl() const {
+        return QString("http://%1:%2%3").arg(ip).arg(port).arg(onvifPath);
+    }
+    
+    QString getDefaultRtspUrl() const {
+        return QString("rtsp://%1:554/stream1").arg(ip);
+    }
+};
+
+#endif // CAMERA_H
