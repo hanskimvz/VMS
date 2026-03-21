@@ -4,6 +4,7 @@
 StreamReceiver::StreamReceiver(QObject* parent)
     : QThread(parent)
 {
+    m_fpsTimer.start();
 }
 
 StreamReceiver::~StreamReceiver() {
@@ -37,7 +38,11 @@ bool StreamReceiver::open(const QString& url, const QString& username, const QSt
     AVDictionary* options = nullptr;
     av_dict_set(&options, "rtsp_transport", "tcp", 0);
     av_dict_set(&options, "stimeout", "5000000", 0);
-    av_dict_set(&options, "max_delay", "500000", 0);
+    av_dict_set(&options, "max_delay", "100000", 0);
+    av_dict_set(&options, "buffer_size", "1024000", 0);
+    av_dict_set(&options, "fflags", "nobuffer", 0);
+    av_dict_set(&options, "flags", "low_delay", 0);
+    av_dict_set(&options, "framedrop", "1", 0);
     
     int ret = avformat_open_input(&m_formatCtx, fullUrl.toUtf8().constData(), nullptr, &options);
     av_dict_free(&options);
@@ -100,7 +105,10 @@ bool StreamReceiver::initDecoder() {
         return false;
     }
     
-    m_codecCtx->thread_count = 2;
+    m_codecCtx->thread_count = 4;
+    m_codecCtx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
+    m_codecCtx->flags |= AV_CODEC_FLAG_LOW_DELAY;
+    m_codecCtx->flags2 |= AV_CODEC_FLAG2_FAST;
     
     if (avcodec_open2(m_codecCtx, codec, nullptr) < 0) {
         emit error("Failed to open codec");
@@ -204,30 +212,75 @@ void StreamReceiver::stop() {
 
 void StreamReceiver::run() {
     AVPacket* packet = av_packet_alloc();
+    QElapsedTimer decodeTimer;
+    int statsCounter = 0;
+    
+    resetStats();
+    m_fpsTimer.restart();
     
     while (m_running) {
-        QMutexLocker locker(&m_mutex);
-        
-        if (!m_formatCtx) {
-            break;
+        int ret;
+        {
+            QMutexLocker locker(&m_mutex);
+            
+            if (!m_formatCtx) {
+                break;
+            }
+            
+            ret = av_read_frame(m_formatCtx, packet);
         }
         
-        int ret = av_read_frame(m_formatCtx, packet);
         if (ret < 0) {
             if (ret == AVERROR_EOF || ret == AVERROR(EAGAIN)) {
-                locker.unlock();
-                QThread::msleep(10);
+                QThread::msleep(1);
                 continue;
             }
+            {
+                QMutexLocker statsLock(&m_statsMutex);
+                m_stats.networkErrors++;
+            }
+            qWarning() << "Network read error:" << ret;
             emit error("Read frame error");
             break;
         }
         
         if (packet->stream_index == m_videoStreamIndex) {
+            {
+                QMutexLocker statsLock(&m_statsMutex);
+                m_stats.framesReceived++;
+                m_stats.totalBytesReceived += packet->size;
+            }
+            
+            decodeTimer.start();
+            
             VideoFrame frame;
-            if (decodeFrame(packet, frame)) {
-                locker.unlock();
+            bool decoded = false;
+            {
+                QMutexLocker locker(&m_mutex);
+                decoded = decodeFrame(packet, frame);
+            }
+            
+            if (decoded) {
+                double decodeTime = decodeTimer.elapsed();
+                
+                {
+                    QMutexLocker statsLock(&m_statsMutex);
+                    m_stats.framesDecoded++;
+                    m_fpsFrameCount++;
+                    m_totalDecodeTime += decodeTime;
+                    m_stats.avgDecodeTimeMs = m_totalDecodeTime / m_stats.framesDecoded;
+                }
+                
                 emit frameReady(frame);
+            } else {
+                QMutexLocker statsLock(&m_statsMutex);
+                m_stats.decodeErrors++;
+            }
+            
+            statsCounter++;
+            if (statsCounter >= 30) {
+                updateStats();
+                statsCounter = 0;
             }
         }
         
@@ -236,6 +289,50 @@ void StreamReceiver::run() {
     
     av_packet_free(&packet);
     emit disconnected();
+}
+
+StreamStats StreamReceiver::getStats() const {
+    QMutexLocker locker(&m_statsMutex);
+    return m_stats;
+}
+
+void StreamReceiver::resetStats() {
+    QMutexLocker locker(&m_statsMutex);
+    m_stats = StreamStats();
+    m_fpsFrameCount = 0;
+    m_totalDecodeTime = 0;
+    m_fpsTimer.restart();
+}
+
+void StreamReceiver::updateStats() {
+    QMutexLocker locker(&m_statsMutex);
+    
+    qint64 elapsed = m_fpsTimer.elapsed();
+    if (elapsed > 0) {
+        m_stats.currentFps = (m_fpsFrameCount * 1000.0) / elapsed;
+    }
+    
+    m_fpsFrameCount = 0;
+    m_fpsTimer.restart();
+    
+    m_stats.framesDropped = m_stats.framesReceived - m_stats.framesDecoded - m_stats.decodeErrors;
+    if (m_stats.framesDropped < 0) m_stats.framesDropped = 0;
+    
+    StreamStats statsCopy = m_stats;
+    locker.unlock();
+    
+    emit statsUpdated(statsCopy);
+    
+    if (m_stats.framesReceived > 0) {
+        double dropRate = (m_stats.decodeErrors * 100.0) / m_stats.framesReceived;
+        if (dropRate > 5.0) {
+            qWarning() << "High decode error rate:" << dropRate << "% - Received:" 
+                       << m_stats.framesReceived << "Decoded:" << m_stats.framesDecoded
+                       << "Errors:" << m_stats.decodeErrors
+                       << "FPS:" << m_stats.currentFps
+                       << "Avg decode time:" << m_stats.avgDecodeTimeMs << "ms";
+        }
+    }
 }
 
 bool StreamReceiver::decodeFrame(AVPacket* packet, VideoFrame& outFrame) {

@@ -5,6 +5,7 @@
 #include <QMouseEvent>
 #include <QContextMenuEvent>
 #include <QDebug>
+#include <QKeyEvent>
 
 VideoWidget::VideoWidget(QWidget* parent)
     : QWidget(parent)
@@ -33,6 +34,8 @@ void VideoWidget::setStreamReceiver(StreamReceiver* receiver) {
     if (m_receiver) {
         connect(m_receiver, &StreamReceiver::frameReady,
                 this, &VideoWidget::onFrameReady, Qt::QueuedConnection);
+        connect(m_receiver, &StreamReceiver::statsUpdated,
+                this, &VideoWidget::onStatsUpdated, Qt::QueuedConnection);
     }
 }
 
@@ -47,7 +50,46 @@ void VideoWidget::removeStreamReceiver() {
     m_scaledFrame = QImage();
     m_frameReady = false;
     
+    m_currentFps = 0;
+    m_avgDecodeTime = 0;
+    m_decodeErrors = 0;
+    m_framesReceived = 0;
+    m_streamWidth = 0;
+    m_streamHeight = 0;
+    m_resolutionUpdated = false;
+    
     update();
+}
+
+void VideoWidget::setShowStats(bool show) {
+    m_showStats = show;
+    
+    if (show && m_receiver && !m_resolutionUpdated) {
+        m_streamWidth = m_receiver->width();
+        m_streamHeight = m_receiver->height();
+        m_resolutionUpdated = true;
+    }
+    
+    update();
+}
+
+void VideoWidget::onStatsUpdated(const StreamStats& stats) {
+    m_currentFps = stats.currentFps;
+    m_avgDecodeTime = stats.avgDecodeTimeMs;
+    m_decodeErrors = stats.decodeErrors;
+    m_framesReceived = stats.framesReceived;
+    
+    if (!m_resolutionUpdated && m_receiver) {
+        m_streamWidth = m_receiver->width();
+        m_streamHeight = m_receiver->height();
+        if (m_streamWidth > 0 && m_streamHeight > 0) {
+            m_resolutionUpdated = true;
+        }
+    }
+    
+    if (m_showStats) {
+        update();
+    }
 }
 
 void VideoWidget::setCameraName(const QString& name) {
@@ -130,6 +172,10 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
     
     drawCameraName(painter);
     
+    if (m_showStats && m_receiver) {
+        drawStats(painter);
+    }
+    
     if (m_selected) {
         painter.setPen(QPen(QColor(0, 122, 204), 3));
         painter.drawRect(rect().adjusted(1, 1, -2, -2));
@@ -137,6 +183,9 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
 }
 
 void VideoWidget::drawNoSignal(QPainter& painter) {
+    painter.setPen(QColor(60, 60, 60));
+    painter.drawRect(rect().adjusted(0, 0, -1, -1));
+    
     painter.setPen(QColor(80, 80, 80));
     painter.setFont(QFont("Arial", 12));
     
@@ -164,6 +213,40 @@ void VideoWidget::drawCameraName(QPainter& painter) {
     painter.fillRect(bgRect, QColor(0, 0, 0, 150));
     
     painter.drawText(bgRect, Qt::AlignCenter, m_cameraName);
+}
+
+void VideoWidget::drawStats(QPainter& painter) {
+    painter.setFont(QFont("Consolas", 9));
+    
+    QStringList lines;
+    if (m_streamWidth > 0 && m_streamHeight > 0) {
+        lines << QString("%1x%2").arg(m_streamWidth).arg(m_streamHeight);
+    }
+    lines << QString("FPS: %1").arg(m_currentFps, 0, 'f', 1);
+    lines << QString("Decode: %1ms").arg(m_avgDecodeTime, 0, 'f', 1);
+    lines << QString("Errors: %1").arg(m_decodeErrors);
+    
+    int lineHeight = painter.fontMetrics().height();
+    int padding = 4;
+    int maxWidth = 0;
+    
+    for (const QString& line : lines) {
+        maxWidth = qMax(maxWidth, painter.fontMetrics().horizontalAdvance(line));
+    }
+    
+    int boxHeight = lines.size() * lineHeight + padding * 2;
+    int boxWidth = maxWidth + padding * 2;
+    
+    QRect bgRect(width() - boxWidth - 5, 5, boxWidth, boxHeight);
+    painter.fillRect(bgRect, QColor(0, 0, 0, 180));
+    
+    painter.setPen(m_decodeErrors > 0 ? QColor(255, 200, 100) : Qt::green);
+    
+    int y = bgRect.top() + padding + lineHeight - painter.fontMetrics().descent();
+    for (const QString& line : lines) {
+        painter.drawText(bgRect.left() + padding, y, line);
+        y += lineHeight;
+    }
 }
 
 void VideoWidget::mousePressEvent(QMouseEvent* event) {

@@ -6,6 +6,10 @@
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QMessageBox>
+#include <QPainter>
+#include <QThreadPool>
+#include <QRunnable>
+#include <QTcpSocket>
 
 CameraTree::CameraTree(QWidget* parent)
     : QTreeWidget(parent)
@@ -16,9 +20,16 @@ CameraTree::CameraTree(QWidget* parent)
             this, &CameraTree::onItemSelectionChanged);
     connect(this, &QTreeWidget::itemDoubleClicked,
             this, &CameraTree::onItemDoubleClicked);
+    
+    m_statusCheckTimer = new QTimer(this);
+    connect(m_statusCheckTimer, &QTimer::timeout, this, &CameraTree::checkCameraStatus);
+    m_statusCheckTimer->start(30000);
 }
 
 CameraTree::~CameraTree() {
+    if (m_statusCheckTimer) {
+        m_statusCheckTimer->stop();
+    }
 }
 
 void CameraTree::setupUi() {
@@ -28,13 +39,44 @@ void CameraTree::setupUi() {
     setDragEnabled(true);
     setDragDropMode(QAbstractItemView::DragOnly);
     
-    m_onlineCamerasItem = new QTreeWidgetItem(this);
-    m_onlineCamerasItem->setText(0, tr("Online Cameras"));
-    m_onlineCamerasItem->setExpanded(true);
+    setStyleSheet(
+        "QTreeWidget { "
+        "   background-color: #252526; "
+        "   border: none; "
+        "   color: #cccccc; "
+        "   font-size: 12px; "
+        "} "
+        "QTreeWidget::item { "
+        "   padding: 4px 2px; "
+        "   border: none; "
+        "} "
+        "QTreeWidget::item:hover { "
+        "   background-color: #2a2d2e; "
+        "} "
+        "QTreeWidget::item:selected { "
+        "   background-color: #094771; "
+        "   color: white; "
+        "} "
+        "QTreeWidget::branch:has-children:!has-siblings:closed, "
+        "QTreeWidget::branch:closed:has-children:has-siblings { "
+        "   border-image: none; "
+        "   image: url(none); "
+        "} "
+        "QTreeWidget::branch:open:has-children:!has-siblings, "
+        "QTreeWidget::branch:open:has-children:has-siblings { "
+        "   border-image: none; "
+        "   image: url(none); "
+        "} "
+    );
     
-    m_offlineCamerasItem = new QTreeWidgetItem(this);
-    m_offlineCamerasItem->setText(0, tr("Offline Cameras"));
-    m_offlineCamerasItem->setExpanded(true);
+    m_defaultGroupItem = new QTreeWidgetItem(this);
+    m_defaultGroupItem->setText(0, tr("Default"));
+    m_defaultGroupItem->setExpanded(true);
+    
+    QFont groupFont = m_defaultGroupItem->font(0);
+    groupFont.setBold(true);
+    m_defaultGroupItem->setFont(0, groupFont);
+    m_defaultGroupItem->setForeground(0, QColor("#e0e0e0"));
 }
 
 void CameraTree::setCameraManager(CameraManager* manager) {
@@ -43,17 +85,20 @@ void CameraTree::setCameraManager(CameraManager* manager) {
     if (m_cameraManager) {
         connect(m_cameraManager, &CameraManager::cameraStatusChanged,
                 this, &CameraTree::refreshCameras);
+        connect(m_cameraManager, &CameraManager::cameraAdded,
+                this, &CameraTree::refreshCameras);
+        connect(m_cameraManager, &CameraManager::cameraRemoved,
+                this, &CameraTree::refreshCameras);
     }
     
     refreshCameras();
+    
+    QTimer::singleShot(500, this, &CameraTree::checkCameraStatus);
 }
 
 void CameraTree::refreshCameras() {
-    while (m_onlineCamerasItem->childCount() > 0) {
-        delete m_onlineCamerasItem->takeChild(0);
-    }
-    while (m_offlineCamerasItem->childCount() > 0) {
-        delete m_offlineCamerasItem->takeChild(0);
+    while (m_defaultGroupItem->childCount() > 0) {
+        delete m_defaultGroupItem->takeChild(0);
     }
     m_cameraItems.clear();
     
@@ -67,23 +112,108 @@ void CameraTree::refreshCameras() {
         addCameraItem(camera);
     }
     
-    m_onlineCamerasItem->setText(0, tr("Online Cameras (%1)").arg(m_onlineCamerasItem->childCount()));
-    m_offlineCamerasItem->setText(0, tr("Offline Cameras (%1)").arg(m_offlineCamerasItem->childCount()));
+    m_defaultGroupItem->setText(0, tr("Default (%1)").arg(m_defaultGroupItem->childCount()));
+}
+
+QIcon CameraTree::createStatusIcon(bool isOnline) const {
+    int size = 12;
+    QPixmap pixmap(size, size);
+    pixmap.fill(Qt::transparent);
+    
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    
+    QColor color = isOnline ? QColor(0, 200, 83) : QColor(244, 67, 54);
+    
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(color);
+    painter.drawEllipse(1, 1, size - 2, size - 2);
+    
+    if (isOnline) {
+        QColor highlight(150, 255, 180, 100);
+        painter.setBrush(highlight);
+        painter.drawEllipse(3, 2, 4, 4);
+    }
+    
+    return QIcon(pixmap);
 }
 
 void CameraTree::addCameraItem(const CameraInfo& camera) {
     QTreeWidgetItem* item = new QTreeWidgetItem();
     item->setText(0, camera.name);
     item->setData(0, Qt::UserRole, camera.id);
-    item->setToolTip(0, QString("%1\nIP: %2").arg(camera.name).arg(camera.ip));
+    item->setToolTip(0, QString("%1\nIP: %2\nStatus: %3")
+        .arg(camera.name)
+        .arg(camera.ip)
+        .arg(camera.status == CameraStatus::Online ? tr("Online") : tr("Offline")));
     
-    if (camera.status == CameraStatus::Online) {
-        m_onlineCamerasItem->addChild(item);
-    } else {
-        m_offlineCamerasItem->addChild(item);
+    bool isOnline = (camera.status == CameraStatus::Online);
+    m_cameraStatusCache[camera.id] = isOnline;
+    item->setIcon(0, createStatusIcon(isOnline));
+    
+    m_defaultGroupItem->addChild(item);
+    m_cameraItems.insert(camera.id, item);
+}
+
+class CameraStatusChecker : public QRunnable {
+public:
+    CameraStatusChecker(CameraTree* tree, const QString& cameraId, const QString& ip, int port)
+        : m_tree(tree), m_cameraId(cameraId), m_ip(ip), m_port(port) {}
+    
+    void run() override {
+        bool isOnline = false;
+        
+        QTcpSocket socket;
+        socket.connectToHost(m_ip, m_port);
+        isOnline = socket.waitForConnected(2000);
+        socket.close();
+        
+        QMetaObject::invokeMethod(m_tree, [tree = m_tree, cameraId = m_cameraId, isOnline]() {
+            tree->updateCameraStatus(cameraId, isOnline);
+        }, Qt::QueuedConnection);
     }
     
-    m_cameraItems.insert(camera.id, item);
+private:
+    CameraTree* m_tree;
+    QString m_cameraId;
+    QString m_ip;
+    int m_port;
+};
+
+void CameraTree::checkCameraStatus() {
+    if (!m_cameraManager) {
+        return;
+    }
+    
+    QList<CameraInfo> cameras = m_cameraManager->getAllCameras();
+    
+    for (const CameraInfo& camera : cameras) {
+        CameraStatusChecker* checker = new CameraStatusChecker(this, camera.id, camera.ip, camera.port);
+        QThreadPool::globalInstance()->start(checker);
+    }
+}
+
+void CameraTree::updateCameraStatus(const QString& cameraId, bool isOnline) {
+    if (!m_cameraItems.contains(cameraId)) {
+        return;
+    }
+    
+    if (m_cameraStatusCache.contains(cameraId) && m_cameraStatusCache[cameraId] == isOnline) {
+        return;
+    }
+    
+    m_cameraStatusCache[cameraId] = isOnline;
+    
+    QTreeWidgetItem* item = m_cameraItems[cameraId];
+    item->setIcon(0, createStatusIcon(isOnline));
+    
+    if (m_cameraManager) {
+        CameraInfo camera = m_cameraManager->getCamera(cameraId);
+        item->setToolTip(0, QString("%1\nIP: %2\nStatus: %3")
+            .arg(camera.name)
+            .arg(camera.ip)
+            .arg(isOnline ? tr("Online") : tr("Offline")));
+    }
 }
 
 void CameraTree::onItemSelectionChanged() {
@@ -115,10 +245,15 @@ void CameraTree::contextMenuEvent(QContextMenuEvent* event) {
     }
     
     QMenu menu(this);
+    menu.setStyleSheet(
+        "QMenu { background-color: #2d2d30; border: 1px solid #3f3f46; color: #cccccc; } "
+        "QMenu::item:selected { background-color: #094771; } "
+        "QMenu::separator { background-color: #3f3f46; height: 1px; margin: 4px 10px; }"
+    );
     
-    CameraInfo camera = m_cameraManager->getCamera(cameraId);
+    bool isOnline = m_cameraStatusCache.value(cameraId, false);
     
-    if (camera.status == CameraStatus::Online) {
+    if (isOnline) {
         menu.addAction(tr("Stop Stream"), this, &CameraTree::onStopStream);
     } else {
         menu.addAction(tr("Start Stream"), this, &CameraTree::onStartStream);

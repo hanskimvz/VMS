@@ -47,6 +47,8 @@ private:
     void saveSettings();
     void applyDarkTheme();
     void setActiveTab(QToolButton* button);
+    bool shouldUseSubStream() const;
+    void updateStreamsForLayout();
     
     std::unique_ptr<CameraManager> m_cameraManager;
     std::unique_ptr<OnvifClient> m_onvifClient;

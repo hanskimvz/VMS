@@ -3,6 +3,7 @@
 
 #include <QTreeWidget>
 #include <QMap>
+#include <QTimer>
 
 class CameraManager;
 struct CameraInfo;
@@ -18,6 +19,8 @@ public:
     
 public slots:
     void refreshCameras();
+    void checkCameraStatus();
+    void updateCameraStatus(const QString& cameraId, bool isOnline);
     
 signals:
     void cameraSelected(const QString& cameraId);
@@ -39,12 +42,14 @@ private:
     void setupUi();
     void addCameraItem(const CameraInfo& camera);
     QString getSelectedCameraId() const;
+    QIcon createStatusIcon(bool isOnline) const;
     
     CameraManager* m_cameraManager = nullptr;
     QMap<QString, QTreeWidgetItem*> m_cameraItems;
+    QMap<QString, bool> m_cameraStatusCache;
     
-    QTreeWidgetItem* m_onlineCamerasItem = nullptr;
-    QTreeWidgetItem* m_offlineCamerasItem = nullptr;
+    QTreeWidgetItem* m_defaultGroupItem = nullptr;
+    QTimer* m_statusCheckTimer = nullptr;
 };
 
 #endif // CAMERA_TREE_H

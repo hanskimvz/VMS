@@ -23,6 +23,7 @@
 #include <QLineEdit>
 #include <QStatusBar>
 #include <QPainter>
+#include <QShortcut>
 #include <iostream>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -373,15 +374,18 @@ void MainWindow::setupConnections() {
     connect(m_cameraTree, &CameraTree::cameraDoubleClicked,
             this, &MainWindow::onCameraDoubleClicked);
     
-    connect(m_cameraManager.get(), &CameraManager::cameraAdded,
-            m_cameraTree, &CameraTree::refreshCameras);
-    connect(m_cameraManager.get(), &CameraManager::cameraRemoved,
-            m_cameraTree, &CameraTree::refreshCameras);
-    
     connect(m_onvifClient.get(), &OnvifClient::deviceDiscovered,
             [this](const OnvifDevice& device) {
                 statusBar()->showMessage(tr("Found: %1 (%2)").arg(device.name).arg(device.address), 3000);
             });
+    
+    QShortcut* statsShortcut = new QShortcut(QKeySequence("F2"), this);
+    connect(statsShortcut, &QShortcut::activated, [this]() {
+        if (m_liveGrid) {
+            m_liveGrid->toggleStats();
+            statusBar()->showMessage(tr("Stream statistics toggled (F2)"), 2000);
+        }
+    });
 }
 
 void MainWindow::setActiveTab(QToolButton* button) {
@@ -414,7 +418,9 @@ void MainWindow::onCameraSelected(const QString& cameraId) {
 void MainWindow::onCameraDoubleClicked(const QString& cameraId) {
     CameraInfo info = m_cameraManager->getCamera(cameraId);
     
-    if (!m_cameraManager->startStream(cameraId)) {
+    bool useSubStream = shouldUseSubStream();
+    
+    if (!m_cameraManager->startStream(cameraId, useSubStream)) {
         statusBar()->showMessage(tr("Failed to connect to %1").arg(info.name), 3000);
         return;
     }
@@ -422,7 +428,8 @@ void MainWindow::onCameraDoubleClicked(const QString& cameraId) {
     StreamReceiver* receiver = m_cameraManager->getStreamReceiver(cameraId);
     if (receiver) {
         m_liveGrid->addStream(cameraId, info.name, receiver);
-        statusBar()->showMessage(tr("Connected: %1").arg(info.name), 3000);
+        QString streamType = useSubStream ? tr("sub-stream") : tr("main-stream");
+        statusBar()->showMessage(tr("Connected: %1 (%2)").arg(info.name).arg(streamType), 3000);
         
         // Live view로 전환
         onShowLiveView();
@@ -431,6 +438,9 @@ void MainWindow::onCameraDoubleClicked(const QString& cameraId) {
 
 void MainWindow::onLayoutChanged(int layout) {
     m_liveGrid->setLayout(layout);
+    
+    updateStreamsForLayout();
+    
     statusBar()->showMessage(tr("Layout: %1 cells").arg(layout), 2000);
 }
 
@@ -473,11 +483,20 @@ void MainWindow::loadSettings() {
     if (!geometry.isEmpty()) {
         restoreGeometry(geometry);
     }
+    
+    int gridLayout = settings.value("gridLayout", 4).toInt();
+    if (m_liveGrid) {
+        m_liveGrid->setLayout(gridLayout);
+    }
 }
 
 void MainWindow::saveSettings() {
     QSettings settings("VMS", "VMS");
     settings.setValue("geometry", saveGeometry());
+    
+    if (m_liveGrid) {
+        settings.setValue("gridLayout", m_liveGrid->layout());
+    }
 }
 
 void MainWindow::applyDarkTheme() {
@@ -509,4 +528,37 @@ void MainWindow::applyDarkTheme() {
         "QScrollBar::handle:vertical { background: #555; border-radius: 6px; min-height: 20px; }"
         "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }"
     );
+}
+
+bool MainWindow::shouldUseSubStream() const {
+    if (!m_liveGrid) {
+        return false;
+    }
+    
+    int layout = m_liveGrid->layout();
+    return layout > 1;
+}
+
+void MainWindow::updateStreamsForLayout() {
+    if (!m_liveGrid || !m_cameraManager) {
+        return;
+    }
+    
+    bool useSubStream = shouldUseSubStream();
+    
+    QList<CameraInfo> cameras = m_cameraManager->getAllCameras();
+    for (const CameraInfo& camera : cameras) {
+        StreamReceiver* receiver = m_cameraManager->getStreamReceiver(camera.id);
+        if (receiver) {
+            bool currentUsingSub = m_cameraManager->isUsingSubStream(camera.id);
+            if (currentUsingSub != useSubStream) {
+                if (m_cameraManager->restartStream(camera.id, useSubStream)) {
+                    StreamReceiver* newReceiver = m_cameraManager->getStreamReceiver(camera.id);
+                    if (newReceiver) {
+                        m_liveGrid->addStream(camera.id, camera.name, newReceiver);
+                    }
+                }
+            }
+        }
+    }
 }

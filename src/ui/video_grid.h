@@ -9,6 +9,13 @@
 class VideoWidget;
 class StreamReceiver;
 
+struct StreamInfo {
+    QString cameraId;
+    QString name;
+    StreamReceiver* receiver = nullptr;
+    int slotIndex = -1;
+};
+
 class VideoGrid : public QWidget {
     Q_OBJECT
     
@@ -28,11 +35,17 @@ public:
     
     int findEmptySlot() const;
     int widgetCount() const { return m_widgets.size(); }
+    int streamCount() const { return m_streams.size(); }
+    
+    bool isMaximized() const { return m_isMaximized; }
+    void toggleMaximize(int widgetIndex);
+    void toggleStats();
     
 signals:
     void widgetClicked(int index, const QString& cameraId);
     void widgetDoubleClicked(int index, const QString& cameraId);
     void contextMenuRequested(int index, const QString& cameraId, const QPoint& pos);
+    void layoutChanged(int cellCount);
     
 private slots:
     void onWidgetClicked(const QString& cameraId);
@@ -40,17 +53,25 @@ private slots:
     void onContextMenuRequested(const QString& cameraId, const QPoint& pos);
     
 private:
+    void initLayout(int cellCount);
     void createWidgets(int count);
     void arrangeWidgets();
+    void arrangeWidgetsMaximized(int focusIndex);
+    void assignStreamsToWidgets();
     void clearSelection();
     int getWidgetIndex(const QString& cameraId) const;
     
     QGridLayout* m_gridLayout;
     QVector<VideoWidget*> m_widgets;
-    QMap<QString, int> m_cameraToWidget;
+    QMap<QString, StreamInfo> m_streams;
     
     int m_cellCount = 4;
     int m_selectedIndex = -1;
+    
+    bool m_isMaximized = false;
+    int m_previousLayout = 4;
+    int m_maximizedWidgetIndex = -1;
+    bool m_showStats = false;
 };
 
 #endif // VIDEO_GRID_H

@@ -28,10 +28,12 @@ public:
     QList<CameraInfo> getAllCameras() const;
     int cameraCount() const;
     
-    bool startStream(const QString& id);
+    bool startStream(const QString& id, bool useSubStream = false);
     bool stopStream(const QString& id);
+    bool restartStream(const QString& id, bool useSubStream);
     
     StreamReceiver* getStreamReceiver(const QString& id) const;
+    bool isUsingSubStream(const QString& id) const;
     
 signals:
     void cameraAdded(const QString& id);
@@ -49,6 +51,7 @@ private:
     std::unique_ptr<Database> m_database;
     QMap<QString, CameraInfo> m_cameras;
     QHash<QString, StreamReceiver*> m_streamReceivers;
+    QHash<QString, bool> m_useSubStream;
 };
 
 #endif // CAMERA_MANAGER_H

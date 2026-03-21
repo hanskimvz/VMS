@@ -76,19 +76,25 @@ int CameraManager::cameraCount() const {
     return m_cameras.count();
 }
 
-bool CameraManager::startStream(const QString& id) {
+bool CameraManager::startStream(const QString& id, bool useSubStream) {
     if (!m_cameras.contains(id)) {
         return false;
     }
     
     if (m_streamReceivers.contains(id)) {
-        return true;
+        if (m_useSubStream.value(id, false) == useSubStream) {
+            return true;
+        }
+        stopStream(id);
     }
     
     const CameraInfo& info = m_cameras[id];
     
     StreamReceiver* receiver = new StreamReceiver();
-    QString url = info.rtspUrl.isEmpty() ? info.getDefaultRtspUrl() : info.rtspUrl;
+    QString url = info.getRtspUrl(useSubStream);
+    
+    qDebug() << "Starting stream for" << info.name << "using" 
+             << (useSubStream ? "sub-stream" : "main-stream") << ":" << url;
     
     if (!receiver->open(url, info.username, info.password)) {
         delete receiver;
@@ -97,6 +103,7 @@ bool CameraManager::startStream(const QString& id) {
     
     receiver->start();
     m_streamReceivers[id] = receiver;
+    m_useSubStream[id] = useSubStream;
     
     m_cameras[id].status = CameraStatus::Online;
     emit cameraStatusChanged(id, CameraStatus::Online);
@@ -105,12 +112,35 @@ bool CameraManager::startStream(const QString& id) {
     return true;
 }
 
+bool CameraManager::restartStream(const QString& id, bool useSubStream) {
+    if (!m_cameras.contains(id)) {
+        return false;
+    }
+    
+    if (!m_streamReceivers.contains(id)) {
+        return startStream(id, useSubStream);
+    }
+    
+    if (m_useSubStream.value(id, false) == useSubStream) {
+        return true;
+    }
+    
+    stopStream(id);
+    return startStream(id, useSubStream);
+}
+
+bool CameraManager::isUsingSubStream(const QString& id) const {
+    return m_useSubStream.value(id, false);
+}
+
 bool CameraManager::stopStream(const QString& id) {
     if (!m_streamReceivers.contains(id)) {
         return false;
     }
     
     StreamReceiver* receiver = m_streamReceivers.take(id);
+    m_useSubStream.remove(id);
+    
     if (receiver) {
         receiver->stop();
         delete receiver;

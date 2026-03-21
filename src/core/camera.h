@@ -54,6 +54,17 @@ struct CameraInfo {
     QString getDefaultRtspUrl() const {
         return QString("rtsp://%1:554/stream1").arg(ip);
     }
+    
+    QString getDefaultRtspUrlSub() const {
+        return QString("rtsp://%1:554/stream2").arg(ip);
+    }
+    
+    QString getRtspUrl(bool useSubStream) const {
+        if (useSubStream) {
+            return rtspUrlSub.isEmpty() ? getDefaultRtspUrlSub() : rtspUrlSub;
+        }
+        return rtspUrl.isEmpty() ? getDefaultRtspUrl() : rtspUrl;
+    }
 };
 
 #endif // CAMERA_H

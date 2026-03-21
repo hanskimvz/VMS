@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QImage>
+#include <QElapsedTimer>
 #include <atomic>
 #include <memory>
 
@@ -20,6 +21,17 @@ struct VideoFrame {
     int64_t pts = 0;
     int64_t dts = 0;
     bool isKeyFrame = false;
+};
+
+struct StreamStats {
+    int64_t framesReceived = 0;
+    int64_t framesDecoded = 0;
+    int64_t framesDropped = 0;
+    int64_t decodeErrors = 0;
+    int64_t networkErrors = 0;
+    double currentFps = 0;
+    double avgDecodeTimeMs = 0;
+    int64_t totalBytesReceived = 0;
 };
 
 class StreamReceiver : public QThread {
@@ -42,11 +54,15 @@ public:
     int height() const { return m_height; }
     double fps() const { return m_fps; }
     
+    StreamStats getStats() const;
+    void resetStats();
+    
 signals:
     void frameReady(const VideoFrame& frame);
     void error(const QString& message);
     void connected();
     void disconnected();
+    void statsUpdated(const StreamStats& stats);
     
 protected:
     void run() override;
@@ -56,6 +72,7 @@ private:
     void cleanup();
     bool decodeFrame(AVPacket* packet, VideoFrame& outFrame);
     QImage convertToQImage(AVFrame* frame);
+    void updateStats();
     
     QString m_url;
     QString m_username;
@@ -75,6 +92,12 @@ private:
     
     std::atomic<bool> m_running{false};
     QMutex m_mutex;
+    
+    mutable QMutex m_statsMutex;
+    StreamStats m_stats;
+    QElapsedTimer m_fpsTimer;
+    int64_t m_fpsFrameCount = 0;
+    double m_totalDecodeTime = 0;
 };
 
 #endif // STREAM_RECEIVER_H
