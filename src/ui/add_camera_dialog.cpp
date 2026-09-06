@@ -646,17 +646,21 @@ void AddCameraDialog::startPreview(const QString& rtspUrl) {
 void AddCameraDialog::stopPreview() {
     if (m_previewReceiver) {
         m_previewWidget->removeStreamReceiver();
-        m_previewReceiver->stop();
-        
-        // Wait a moment for clean disconnect
-        m_previewReceiver->wait(1000);
-        
+        m_previewReceiver->stop();   // 스레드 종료까지 기다린다. GUI 스레드에서 추가로 sleep 하지 않는다.
         delete m_previewReceiver;
         m_previewReceiver = nullptr;
-        
-        // Small delay to let camera release resources
-        QThread::msleep(100);
     }
+}
+
+void AddCameraDialog::setCredentials(const QString& username, const QString& password) {
+    m_usernameEdit->setText(username);
+    m_passwordEdit->setText(password);
+    m_rtspUsernameEdit->setText(username);
+    m_rtspPasswordEdit->setText(password);
+}
+
+void AddCameraDialog::startConnectionTest() {
+    onTestConnection();
 }
 
 void AddCameraDialog::appendLog(const QString& message) {

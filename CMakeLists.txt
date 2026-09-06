@@ -7,13 +7,15 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wall -Wextra)
+endif()
+
 # Find Qt6
 find_package(Qt6 REQUIRED COMPONENTS 
     Widgets 
-    OpenGLWidgets 
     Network 
     Sql
-    Concurrent
 )
 
 # Find FFmpeg
@@ -31,22 +33,26 @@ set(CORE_SOURCES
     src/core/camera.cpp
     src/core/camera_manager.cpp
     src/core/stream_receiver.cpp
+    src/core/stream_health_checker.cpp
     src/core/video_decoder.cpp
     src/core/recorder.cpp
     src/core/onvif_client.cpp
     src/core/playback_controller.cpp
     src/core/device_discovery.cpp
+    src/core/local_interfaces.cpp
 )
 
 set(CORE_HEADERS
     src/core/camera.h
     src/core/camera_manager.h
     src/core/stream_receiver.h
+    src/core/stream_health_checker.h
     src/core/video_decoder.h
     src/core/recorder.h
     src/core/onvif_client.h
     src/core/playback_controller.h
     src/core/device_discovery.h
+    src/core/local_interfaces.h
 )
 
 set(UI_SOURCES
@@ -109,10 +115,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Widgets
-    Qt6::OpenGLWidgets
     Qt6::Network
     Qt6::Sql
-    Qt6::Concurrent
     PkgConfig::FFMPEG
 )
 

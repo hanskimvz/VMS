@@ -236,10 +236,13 @@ void NetworkSettingsDialog::onApply() {
     m_progressBar->setVisible(true);
     setFieldsEnabled(false);
     
+    m_gatewayPending = !config.dhcpEnabled && !config.gateway.isEmpty();
+    m_pendingRebootNeeded = false;
+
     m_onvifClient->setNetworkInterfaces(m_deviceServiceUrl, config);
-    
+
     // Also set gateway if provided and not using DHCP
-    if (!config.dhcpEnabled && !config.gateway.isEmpty()) {
+    if (m_gatewayPending) {
         appendLog(tr("Setting gateway to %1...").arg(config.gateway));
         QTimer::singleShot(1000, this, [this, config]() {
             m_onvifClient->setNetworkDefaultGateway(m_deviceServiceUrl, config.gateway);
@@ -317,6 +320,15 @@ void NetworkSettingsDialog::onNetworkInterfacesReceived(const QList<NetworkInter
 }
 
 void NetworkSettingsDialog::onNetworkSettingsChanged(bool rebootNeeded) {
+    if (m_gatewayPending) {
+        // 첫 번째 응답. 게이트웨이 응답이 아직 남았으므로 결과만 기억하고 기다린다.
+        m_gatewayPending = false;
+        m_pendingRebootNeeded = rebootNeeded;
+        return;
+    }
+    rebootNeeded = rebootNeeded || m_pendingRebootNeeded;
+    m_pendingRebootNeeded = false;
+
     m_progressBar->setVisible(false);
     setFieldsEnabled(true);
     
@@ -353,6 +365,8 @@ void NetworkSettingsDialog::onSystemRebooting() {
 }
 
 void NetworkSettingsDialog::onError(const QString& message) {
+    m_gatewayPending = false;
+    m_pendingRebootNeeded = false;
     m_progressBar->setVisible(false);
     setFieldsEnabled(true);
     m_refreshBtn->setEnabled(true);

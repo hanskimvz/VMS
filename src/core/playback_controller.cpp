@@ -69,7 +69,14 @@ bool PlaybackController::openFile(const QString& filePath) {
     m_height = m_codecCtx->height;
     
     AVStream* stream = m_formatCtx->streams[m_videoStreamIndex];
-    m_duration = stream->duration * av_q2d(stream->time_base) * 1000;
+    // MKV/TS 는 스트림 단위 duration 이 AV_NOPTS_VALUE 인 경우가 많다. 컨테이너 값으로 폴백한다.
+    if (stream->duration != AV_NOPTS_VALUE && stream->duration > 0) {
+        m_duration = static_cast<int64_t>(stream->duration * av_q2d(stream->time_base) * 1000);
+    } else if (m_formatCtx->duration != AV_NOPTS_VALUE && m_formatCtx->duration > 0) {
+        m_duration = m_formatCtx->duration * 1000 / AV_TIME_BASE;
+    } else {
+        m_duration = 0;
+    }
     
     if (stream->avg_frame_rate.den > 0) {
         m_frameInterval = 1000.0 / av_q2d(stream->avg_frame_rate);
@@ -191,7 +198,13 @@ bool PlaybackController::decodeNextFrame() {
                                m_frameRGB->linesize[0], QImage::Format_RGB32);
                     
                     AVStream* stream = m_formatCtx->streams[m_videoStreamIndex];
-                    m_currentPos = m_frame->pts * av_q2d(stream->time_base) * 1000;
+                    int64_t ts = m_frame->best_effort_timestamp;
+                    if (ts == AV_NOPTS_VALUE) {
+                        ts = m_frame->pts;
+                    }
+                    if (ts != AV_NOPTS_VALUE) {
+                        m_currentPos = static_cast<int64_t>(ts * av_q2d(stream->time_base) * 1000);
+                    }
                     
                     emit frameReady(img.copy());
                     emit positionChanged(m_currentPos);

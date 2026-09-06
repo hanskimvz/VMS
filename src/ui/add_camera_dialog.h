@@ -32,6 +32,9 @@ public:
     
     void setDeviceInfo(const QString& ip, const QString& name, const QString& serviceUrl = QString(), const QString& model = QString());
     void setCameraInfo(const CameraInfo& info);
+    void setCredentials(const QString& username, const QString& password);
+    // 현재 폼 값으로 접속 테스트를 시작한다. 검색 결과에서 자격 증명을 미리 채워 열 때 쓴다.
+    void startConnectionTest();
     
 private slots:
     void onTypeChanged(int index);

@@ -101,7 +101,6 @@ void TimelineWidget::drawTimeScale(QPainter& painter) {
     painter.setPen(QColor(150, 150, 150));
     painter.setFont(QFont("Arial", 8));
     
-    int timelineWidth = width() - MARGIN_LEFT - MARGIN_RIGHT;
     
     int64_t interval = 1000;
     if (m_viewDuration > 60000) interval = 10000;
@@ -184,18 +183,18 @@ void TimelineWidget::drawHoverPosition(QPainter& painter) {
 }
 
 int64_t TimelineWidget::positionToTimestamp(int x) const {
+    int timelineWidth = width() - MARGIN_LEFT - MARGIN_RIGHT;
     if (m_viewDuration <= 0) return 0;
     
-    int timelineWidth = width() - MARGIN_LEFT - MARGIN_RIGHT;
     double ratio = static_cast<double>(x - MARGIN_LEFT) / timelineWidth;
     
     return m_viewStart + static_cast<int64_t>(ratio * m_viewDuration);
 }
 
 int TimelineWidget::timestampToPosition(int64_t timestamp) const {
+    int timelineWidth = width() - MARGIN_LEFT - MARGIN_RIGHT;
     if (m_viewDuration <= 0) return MARGIN_LEFT;
     
-    int timelineWidth = width() - MARGIN_LEFT - MARGIN_RIGHT;
     double ratio = static_cast<double>(timestamp - m_viewStart) / m_viewDuration;
     
     return MARGIN_LEFT + static_cast<int>(ratio * timelineWidth);

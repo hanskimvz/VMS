@@ -8,6 +8,9 @@
 #include <QUrl>
 #include <QAuthenticator>
 #include <QMap>
+#include <QNetworkDatagram>
+#include <QSet>
+#include "local_interfaces.h"
 
 const QString OnvifClient::WS_DISCOVERY_ADDRESS = "239.255.255.250";
 
@@ -42,58 +45,82 @@ void OnvifClient::setCredentials(const QString& username, const QString& passwor
     m_password = password;
 }
 
-void OnvifClient::discover(int timeout) {
-    qDebug() << "OnvifClient: Starting discovery with timeout" << timeout << "ms";
-    
-    if (m_discoverySocket) {
-        stopDiscovery();
-    }
-    
-    m_discoverySocket = new QUdpSocket(this);
-    
-    if (!m_discoverySocket->bind(QHostAddress::AnyIPv4, 0)) {
-        qDebug() << "OnvifClient: Failed to bind discovery socket";
-        emit error("Failed to bind discovery socket");
-        delete m_discoverySocket;
-        m_discoverySocket = nullptr;
+void OnvifClient::discover(int timeout, const QList<QHostAddress>& localAddresses) {
+    stopDiscovery();
+    m_discoveredAddresses.clear();
+
+    // 소켓을 0.0.0.0 에 바인드해서 멀티캐스트를 보내면 OS 는 기본 경로 인터페이스로만 내보낸다.
+    // VPN 이나 가상 어댑터(Hyper-V, WSL)가 기본 경로를 잡고 있으면 카메라가 있는 LAN 에는
+    // 프로브가 나가지 않는다. 그래서 인터페이스마다 소켓을 만들고 송신 인터페이스를 명시한다.
+    const QList<LocalInterface> interfaces = resolveDiscoveryInterfaces(localAddresses);
+    if (interfaces.isEmpty()) {
+        emit error("No usable IPv4 network interface for discovery");
+        emit discoveryFinished();
         return;
     }
-    
-    connect(m_discoverySocket, &QUdpSocket::readyRead,
-            this, &OnvifClient::onDiscoveryReadyRead);
-    
-    QString probeMsg = createWsDiscoveryProbe();
-    QByteArray data = probeMsg.toUtf8();
-    
-    qint64 sent = m_discoverySocket->writeDatagram(data, QHostAddress(WS_DISCOVERY_ADDRESS), WS_DISCOVERY_PORT);
-    qDebug() << "OnvifClient: Sent WS-Discovery probe," << sent << "bytes";
-    
+
+    for (const LocalInterface& li : interfaces) {
+        auto* socket = new QUdpSocket(this);
+        if (!bindDiscoverySocket(*socket, li)) {
+            delete socket;
+            continue;
+        }
+        connect(socket, &QUdpSocket::readyRead, this, &OnvifClient::onDiscoveryReadyRead);
+        m_discoverySockets.append(socket);
+        emit discoveryInfo(QString("WS-Discovery on %1").arg(li.label()));
+    }
+
+    if (m_discoverySockets.isEmpty()) {
+        emit error("Failed to bind discovery socket on any interface");
+        emit discoveryFinished();
+        return;
+    }
+
+    qInfo() << "OnvifClient: discovery on" << m_discoverySockets.size()
+            << "interface(s), timeout" << timeout << "ms";
+
+    sendDiscoveryProbe();
+    // 일부 카메라는 첫 프로브를 놓친다. 1초 뒤 한 번 더 보낸다.
+    QTimer::singleShot(1000, this, [this]() {
+        if (!m_discoverySockets.isEmpty()) {
+            sendDiscoveryProbe();
+        }
+    });
+
     m_discoveryTimer->start(timeout);
-    qDebug() << "OnvifClient: Discovery timer started";
+}
+
+void OnvifClient::sendDiscoveryProbe() {
+    const QByteArray data = createWsDiscoveryProbe().toUtf8();
+    for (QUdpSocket* socket : m_discoverySockets) {
+        qint64 sent = socket->writeDatagram(data, QHostAddress(WS_DISCOVERY_ADDRESS), WS_DISCOVERY_PORT);
+        if (sent < 0) {
+            qWarning() << "OnvifClient: probe send failed from" << socket->localAddress().toString()
+                       << socket->errorString();
+        } else {
+            qDebug() << "OnvifClient: probe sent from" << socket->localAddress().toString();
+        }
+    }
 }
 
 void OnvifClient::stopDiscovery() {
     m_discoveryTimer->stop();
-    
-    if (m_discoverySocket) {
-        m_discoverySocket->close();
-        delete m_discoverySocket;
-        m_discoverySocket = nullptr;
+
+    for (QUdpSocket* socket : m_discoverySockets) {
+        socket->close();
+        socket->deleteLater();
     }
+    m_discoverySockets.clear();
 }
 
 void OnvifClient::onDiscoveryReadyRead() {
-    while (m_discoverySocket && m_discoverySocket->hasPendingDatagrams()) {
-        QByteArray datagram;
-        datagram.resize(m_discoverySocket->pendingDatagramSize());
-        
-        QHostAddress sender;
-        quint16 senderPort;
-        
-        m_discoverySocket->readDatagram(datagram.data(), datagram.size(),
-                                         &sender, &senderPort);
-        
-        parseDiscoveryResponse(datagram);
+    auto* socket = qobject_cast<QUdpSocket*>(sender());
+    if (!socket) {
+        return;
+    }
+    while (socket->hasPendingDatagrams()) {
+        QNetworkDatagram datagram = socket->receiveDatagram();
+        parseDiscoveryResponse(datagram.data(), datagram.senderAddress());
     }
 }
 
@@ -127,29 +154,37 @@ QString OnvifClient::createWsDiscoveryProbe() const {
     ).arg(messageId);
 }
 
-void OnvifClient::parseDiscoveryResponse(const QByteArray& data) {
+void OnvifClient::parseDiscoveryResponse(const QByteArray& data, const QHostAddress& sender) {
     QXmlStreamReader xml(data);
     OnvifDevice device;
-    
+
     while (!xml.atEnd()) {
         xml.readNext();
-        
+
         if (xml.isStartElement()) {
             QString name = xml.name().toString();
-            
+
             if (name == "XAddrs") {
                 QString xaddrs = xml.readElementText();
                 QStringList addrs = xaddrs.split(' ', Qt::SkipEmptyParts);
-                if (!addrs.isEmpty()) {
-                    device.xaddr = addrs.first();
-                    device.serviceUrl = device.xaddr;
-                    QUrl url(device.xaddr);
-                    device.address = url.host();
+
+                // IPv4 XAddr 을 우선한다. 일부 장치는 IPv6 링크로컬 주소를 먼저 광고한다.
+                for (const QString& addr : addrs) {
+                    QHostAddress host(QUrl(addr).host());
+                    if (host.protocol() == QAbstractSocket::IPv4Protocol) {
+                        device.xaddr = addr;
+                        break;
+                    }
                 }
+                if (device.xaddr.isEmpty() && !addrs.isEmpty()) {
+                    device.xaddr = addrs.first();
+                }
+                device.serviceUrl = device.xaddr;
+                device.address = QUrl(device.xaddr).host();
             } else if (name == "Scopes") {
                 QString scopes = xml.readElementText();
                 QStringList scopeList = scopes.split(' ', Qt::SkipEmptyParts);
-                
+
                 for (const QString& scope : scopeList) {
                     if (scope.contains("onvif://www.onvif.org/name/")) {
                         device.name = QUrl::fromPercentEncoding(scope.mid(scope.lastIndexOf('/') + 1).toUtf8());
@@ -160,10 +195,31 @@ void OnvifClient::parseDiscoveryResponse(const QByteArray& data) {
             }
         }
     }
-    
-    if (!device.xaddr.isEmpty()) {
-        emit deviceDiscovered(device);
+
+    QString senderIp = sender.toString();
+    if (senderIp.startsWith("::ffff:")) {
+        senderIp = senderIp.mid(7);
     }
+
+    if (device.address.isEmpty()) {
+        device.address = senderIp;
+    }
+    if (device.xaddr.isEmpty()) {
+        if (device.address.isEmpty()) {
+            return;
+        }
+        device.xaddr = QString("http://%1/onvif/device_service").arg(device.address);
+        device.serviceUrl = device.xaddr;
+    }
+
+    // 프로브를 인터페이스마다, 그리고 두 번 보내므로 같은 장치가 여러 번 응답한다.
+    if (m_discoveredAddresses.contains(device.address)) {
+        return;
+    }
+    m_discoveredAddresses.insert(device.address);
+
+    qInfo() << "OnvifClient: device" << device.address << device.name << device.model << "via" << senderIp;
+    emit deviceDiscovered(device);
 }
 
 void OnvifClient::getCapabilities(const QString& deviceServiceUrl) {
@@ -175,12 +231,8 @@ void OnvifClient::getCapabilities(const QString& deviceServiceUrl) {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/GetCapabilities\"");
     
-    // Add HTTP Basic Auth as fallback
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "GetCapabilities");
@@ -204,11 +256,8 @@ void OnvifClient::getServices(const QString& deviceServiceUrl) {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/GetServices\"");
     
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "GetServices");
@@ -232,11 +281,8 @@ void OnvifClient::getDeviceInformation(const QString& deviceServiceUrl) {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/GetDeviceInformation\"");
     
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "GetDeviceInformation");
@@ -294,6 +340,16 @@ void OnvifClient::parseServicesResponse(const QByteArray& data) {
     
     QString currentNamespace;
     QString currentXAddr;
+    QString media2Url;
+
+    // contains("media") 같은 느슨한 비교는 Media2(ver20) 나 deviceIO 에도 매칭되어
+    // 엉뚱한 엔드포인트에 ver10 GetProfiles 를 보내게 된다. 네임스페이스를 정확히 비교한다.
+    static const QString kMedia1  = QStringLiteral("http://www.onvif.org/ver10/media/wsdl");
+    static const QString kMedia2  = QStringLiteral("http://www.onvif.org/ver20/media/wsdl");
+    static const QString kPtz     = QStringLiteral("http://www.onvif.org/ver20/ptz/wsdl");
+    static const QString kEvents  = QStringLiteral("http://www.onvif.org/ver10/events/wsdl");
+    static const QString kImaging = QStringLiteral("http://www.onvif.org/ver20/imaging/wsdl");
+    static const QString kDevice  = QStringLiteral("http://www.onvif.org/ver10/device/wsdl");
     
     while (!xml.atEnd()) {
         xml.readNext();
@@ -306,18 +362,21 @@ void OnvifClient::parseServicesResponse(const QByteArray& data) {
             } else if (name == "XAddr") {
                 currentXAddr = xml.readElementText();
                 
-                // Map namespace to service
-                if (currentNamespace.contains("media")) {
+                QString ns = currentNamespace.trimmed();
+                if (ns == kMedia1) {
                     m_capabilities.mediaServiceUrl = currentXAddr;
                     qDebug() << "Found Media service:" << currentXAddr;
-                } else if (currentNamespace.contains("ptz")) {
+                } else if (ns == kMedia2) {
+                    media2Url = currentXAddr;
+                    qDebug() << "Found Media2 service:" << currentXAddr;
+                } else if (ns == kPtz) {
                     m_capabilities.ptzServiceUrl = currentXAddr;
                     qDebug() << "Found PTZ service:" << currentXAddr;
-                } else if (currentNamespace.contains("event")) {
+                } else if (ns == kEvents) {
                     m_capabilities.eventsServiceUrl = currentXAddr;
-                } else if (currentNamespace.contains("imaging")) {
+                } else if (ns == kImaging) {
                     m_capabilities.imagingServiceUrl = currentXAddr;
-                } else if (currentNamespace.contains("device")) {
+                } else if (ns == kDevice) {
                     m_capabilities.deviceServiceUrl = currentXAddr;
                 }
             }
@@ -327,6 +386,12 @@ void OnvifClient::parseServicesResponse(const QByteArray& data) {
         }
     }
     
+    if (m_capabilities.mediaServiceUrl.isEmpty() && !media2Url.isEmpty()) {
+        // Media2 만 광고하는 장치. ver10 GetProfiles 가 실패할 수 있지만 아무것도 없는 것보다는 낫다.
+        qWarning() << "Device advertises only Media2; falling back to" << media2Url;
+        m_capabilities.mediaServiceUrl = media2Url;
+    }
+
     qDebug() << "Services parsed - Media:" << m_capabilities.mediaServiceUrl;
     
     emit capabilitiesReceived(m_capabilities);
@@ -397,12 +462,8 @@ void OnvifClient::getProfiles(const QString& mediaServiceUrl) {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/media/wsdl/GetProfiles\"");
     
-    // Add HTTP Basic Auth
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "GetProfiles");
@@ -421,12 +482,8 @@ void OnvifClient::getStreamUri(const QString& mediaServiceUrl, const QString& pr
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/media/wsdl/GetStreamUri\"");
     
-    // Add HTTP Basic Auth
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "GetStreamUri");
@@ -467,12 +524,8 @@ void OnvifClient::ptzMove(const QString& ptzServiceUrl, const QString& profileTo
         : "\"http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove\"";
     request.setRawHeader("SOAPAction", soapAction.toUtf8());
     
-    // Add HTTP Basic Auth
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "PTZ");
@@ -581,12 +634,9 @@ void OnvifClient::onHttpFinished(QNetworkReply* reply) {
         qDebug() << "HTTP error:" << errorStr;
         qDebug() << "Response:" << data;
         
-        // Check if we should retry (500, 503 errors)
-        bool shouldRetry = errorStr.contains("500") || 
-                           errorStr.contains("503") ||
-                           errorStr.contains("Internal Server Error") ||
-                           errorStr.contains("Service Not Available") ||
-                           errorStr.contains("Service Unavailable");
+        // 500/503 은 카메라가 잠시 바쁜 경우가 많아 재시도한다. 문자열 매칭 대신 상태 코드를 본다.
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        bool shouldRetry = (httpStatus == 500 || httpStatus == 503);
         
         if (shouldRetry) {
             int retries = m_retryCount.value(requestUrl, 0);
@@ -741,11 +791,8 @@ void OnvifClient::getNetworkInterfaces(const QString& deviceServiceUrl) {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/GetNetworkInterfaces\"");
     
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "GetNetworkInterfaces");
@@ -768,6 +815,9 @@ void OnvifClient::parseNetworkInterfacesResponse(const QByteArray& data) {
     bool inInterface = false;
     bool inIPv4 = false;
     bool inManual = false;
+    bool inFromDhcp = false;
+    QString fromDhcpAddress;
+    int fromDhcpPrefix = -1;
     
     while (!xml.atEnd()) {
         xml.readNext();
@@ -778,6 +828,8 @@ void OnvifClient::parseNetworkInterfacesResponse(const QByteArray& data) {
             if (name == "NetworkInterfaces") {
                 inInterface = true;
                 currentIface = NetworkInterface();
+                fromDhcpAddress.clear();
+                fromDhcpPrefix = -1;
                 // Get token attribute
                 for (const auto& attr : xml.attributes()) {
                     if (attr.name().toString() == "token") {
@@ -804,15 +856,21 @@ void OnvifClient::parseNetworkInterfacesResponse(const QByteArray& data) {
                         currentIface.dhcpEnabled = (xml.readElementText().toLower() == "true");
                     } else if (name == "Manual") {
                         inManual = true;
+                    } else if (name == "FromDHCP") {
+                        inFromDhcp = true;
                     } else if (inManual) {
                         if (name == "Address") {
                             currentIface.ipAddress = xml.readElementText();
                         } else if (name == "PrefixLength") {
                             currentIface.prefixLength = xml.readElementText().toInt();
                         }
-                    } else if (name == "FromDHCP") {
-                        // DHCP assigned address
-                        // Read nested Address if we don't have manual
+                    } else if (inFromDhcp) {
+                        // DHCP 로 받은 주소. 수동 주소가 없을 때 표시용으로 쓴다.
+                        if (name == "Address") {
+                            fromDhcpAddress = xml.readElementText();
+                        } else if (name == "PrefixLength") {
+                            fromDhcpPrefix = xml.readElementText().toInt();
+                        }
                     }
                 }
             }
@@ -821,6 +879,12 @@ void OnvifClient::parseNetworkInterfacesResponse(const QByteArray& data) {
             
             if (name == "NetworkInterfaces") {
                 inInterface = false;
+                if (currentIface.ipAddress.isEmpty() && !fromDhcpAddress.isEmpty()) {
+                    currentIface.ipAddress = fromDhcpAddress;
+                    if (fromDhcpPrefix > 0) {
+                        currentIface.prefixLength = fromDhcpPrefix;
+                    }
+                }
                 if (!currentIface.token.isEmpty()) {
                     interfaces.append(currentIface);
                 }
@@ -828,6 +892,8 @@ void OnvifClient::parseNetworkInterfacesResponse(const QByteArray& data) {
                 inIPv4 = false;
             } else if (name == "Manual") {
                 inManual = false;
+            } else if (name == "FromDHCP") {
+                inFromDhcp = false;
             }
         }
     }
@@ -852,11 +918,8 @@ void OnvifClient::setNetworkInterfaces(const QString& deviceServiceUrl, const Ne
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/SetNetworkInterfaces\"");
     
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "SetNetworkInterfaces");
@@ -929,11 +992,8 @@ void OnvifClient::getNetworkDefaultGateway(const QString& deviceServiceUrl) {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/GetNetworkDefaultGateway\"");
     
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "GetNetworkDefaultGateway");
@@ -948,11 +1008,8 @@ void OnvifClient::setNetworkDefaultGateway(const QString& deviceServiceUrl, cons
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/SetNetworkDefaultGateway\"");
     
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "SetNetworkDefaultGateway");
@@ -975,11 +1032,8 @@ void OnvifClient::systemReboot(const QString& deviceServiceUrl) {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/soap+xml; charset=utf-8");
     request.setRawHeader("SOAPAction", "\"http://www.onvif.org/ver10/device/wsdl/SystemReboot\"");
     
-    if (!m_username.isEmpty()) {
-        QString credentials = QString("%1:%2").arg(m_username, m_password);
-        QByteArray base64Credentials = credentials.toUtf8().toBase64();
-        request.setRawHeader("Authorization", "Basic " + base64Credentials);
-    }
+    // HTTP Basic 을 선제적으로 보내면 비밀번호가 매 요청마다 평문으로 나간다.
+    // 인증은 SOAP 본문의 WS-Security 다이제스트와, 401 챌린지에 답하는 authenticationRequired 핸들러로만 한다.
     
     QNetworkReply* reply = m_networkManager->post(request, envelope.toUtf8());
     reply->setProperty("requestType", "SystemReboot");

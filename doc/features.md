@@ -1,338 +1,157 @@
-# VMS 기능 상세
+# VMS 기능 상세 (현재 구현 기준)
 
-## 1. 라이브 뷰
+마지막 검토: 2026‑09‑06. 미구현 항목은 마지막 절에 모아 두었다. 계획 중인 지능형 기능은 [intelligent-vms-concept.md](intelligent-vms-concept.md)를 본다.
 
-### 1.1 비디오 그리드
+## 1. 라이브 뷰 (Main View 탭)
 
-다중 카메라를 동시에 모니터링할 수 있는 그리드 레이아웃을 제공합니다.
+### 1.1 레이아웃
 
-| 레이아웃 | 카메라 수 | 단축키 |
-|----------|----------|--------|
-| 1x1 | 1 | `1` |
-| 2x2 | 4 | `2` |
-| 3x3 | 9 | `3` |
-| 4x4 | 16 | `4` |
+하단 레이아웃 바의 버튼으로 전환한다. 단축키는 없다.
 
-**구현 파일**: `src/ui/video_grid.cpp`
+| 레이아웃 | 셀 수 | 비고 |
+|----------|-------|------|
+| 1×1 | 1 | 메인 스트림 사용 |
+| 2×2 | 4 | 서브 스트림 |
+| 1+7 | 8 | 좌상단 3×3 크기 메인 + 우측 3 + 하단 4. 서브 스트림 |
+| 3×3 | 9 | 서브 스트림 |
+| 4×4 | 16 | 서브 스트림 |
 
-```cpp
-void VideoGrid::setLayout(int cellCount) {
-    // 1, 4, 9, 16 중 하나
-    m_cellCount = cellCount;
-    createWidgets(cellCount);
-    arrangeWidgets();
-}
-```
+- **메인/서브 자동 전환**: 셀 수가 1보다 크면 모든 실행 중 스트림을 서브 스트림으로, 1×1이면 메인 스트림으로 재접속한다. 서브 URL이 비어 있으면 `rtsp://ip:554/stream2`를 추측한다.
+- **최대화 토글**: 셀 더블클릭으로 1×1 최대화 ↔ 이전 레이아웃 복귀.
+- **통계 오버레이**: `F2`로 해상도, FPS, 평균 디코드 시간, 에러 수 표시.
+- 마지막 레이아웃은 종료 시 저장되어 다음 실행에 복원된다.
 
 ### 1.2 비디오 위젯
 
-각 카메라 스트림을 표시하는 위젯입니다.
+- 프레임 표시(종횡비 유지, 중앙 정렬), 카메라 이름 오버레이, 선택 테두리.
+- 신호 없을 때 "No Signal" 또는 카메라 이름 표시.
+- 33ms 간격 갱신(약 30fps 상한).
 
-**기능**:
-- 비디오 프레임 표시
-- 카메라 이름 오버레이
-- 선택 상태 표시 (파란색 테두리)
-- 컨텍스트 메뉴 지원
-- 더블클릭으로 스트림 시작
+### 1.3 카메라 트리 (좌측 패널)
 
-**구현 파일**: `src/ui/video_widget.cpp`
+- "Default" 그룹 아래 카메라 목록. 온라인/오프라인 아이콘.
+- 온라인 판정: 30초마다 카메라 `ip:port`에 TCP 접속 시도(2초 타임아웃).
+- 더블클릭: 현재 레이아웃에 맞는 스트림으로 접속하고 그리드의 빈 셀에 배치, Main View 탭으로 전환.
+- 우클릭: Start/Stop Stream(실제 스트리밍 여부 기준), Edit(편집 대화상자), Delete.
+- 상단 검색 상자는 자리만 있고 동작하지 않는다.
 
-### 1.3 카메라 트리
+## 2. 장치 관리 (Device Manage 탭)
 
-좌측 도킹 패널에 카메라 목록을 트리 구조로 표시합니다.
+### 2.1 검색 (Start Search)
 
-**기능**:
-- Online/Offline 카메라 분류
-- 드래그 앤 드롭 지원
-- 컨텍스트 메뉴 (시작/중지/편집/삭제)
+세 가지 검색을 5초간 동시에 실행하고 결과를 IP 기준으로 병합한다.
 
-**구현 파일**: `src/ui/camera_tree.cpp`
+**인터페이스 선택**: 버튼 줄의 "Interface" 콤보에서 프로브를 내보낼 NIC를 고른다. 기본값 "All interfaces"는 사용 가능한 모든 IPv4 인터페이스(Up, 루프백·링크로컬 제외)마다 소켓을 만들어 각각 보낸다. 소켓을 `0.0.0.0`에 바인드하면 OS가 기본 경로 인터페이스(VPN, Hyper‑V 가상 어댑터일 수 있음)로만 멀티캐스트를 내보내 카메라 LAN에 프로브가 도달하지 않기 때문이다. 검색 중 상태 줄에 사용 중인 인터페이스와 결과 수가 표시된다. WS‑Discovery 프로브는 1초 간격으로 2회, SSDP/mDNS 질의는 0.9초마다 재전송한다.
 
----
+| 방식 | 프로토콜 | 결과 |
+|------|----------|------|
+| ONVIF WS‑Discovery | UDP 멀티캐스트 239.255.255.250:3702 | 서비스 URL, 이름(scope name), 모델(scope hardware) |
+| mDNS | UDP 224.0.0.251:5353, `_rtsp._tcp` / `_axis-video._tcp` / `_http._tcp`. QU 비트로 유니캐스트 응답 요청 + 5353 그룹 수신 | IP만. 이름은 "mDNS Camera (ip)" |
+| SSDP/UPnP | UDP 239.255.255.250:1900, `ssdp:all` 등. 공유기(IGD)·미디어 기기는 휴리스틱으로 제외 | IP, LOCATION, SERVER 헤더 |
 
-## 2. 카메라 관리
+ONVIF 결과가 우선이며, mDNS/UPnP 결과는 ONVIF 검색이 끝난 뒤 중복이 아닌 것만 표에 추가된다. 이미 추가된 카메라의 IP는 검색 표에 표시하지 않는다.
 
-### 2.1 카메라 추가
+### 2.2 검색 결과 조작
 
-카메라를 수동으로 추가하거나 ONVIF 검색으로 자동 추가할 수 있습니다.
+| 버튼/동작 | 기능 |
+|-----------|------|
+| Add Device | 사용자명/비밀번호를 입력받아 AddCameraDialog를 자격 증명이 채워진 상태로 열고 접속 테스트를 자동 실행. 프로필과 스트림 URL을 확인한 뒤 저장 |
+| 행 더블클릭 | AddCameraDialog를 검색 정보로 채워서 열기. ONVIF면 프로필까지 자동 조회. 정상 경로 |
+| Modify IP | ONVIF 장치만. NetworkSettingsDialog 열기 |
+| Manual Add | 빈 AddCameraDialog |
 
-**수동 추가**:
-- 카메라 이름
-- IP 주소 / 포트
-- 사용자명 / 비밀번호
-- RTSP URL (선택)
+### 2.3 추가된 장치 표
 
-**ONVIF 검색**:
-1. "Discover" 버튼 클릭
-2. 네트워크에서 ONVIF 카메라 자동 검색
-3. 검색된 카메라 선택
-4. 프로필 및 스트림 URL 자동 획득
-
-**구현 파일**: `src/ui/add_camera_dialog.cpp`
+이름, IP, 모델, 시리얼, 타입(ONVIF/RTSP), 연결 상태, (파일 시스템 버전: 비어 있음). Delete, Edit(더블클릭과 동일하게 AddCameraDialog 편집 모드).
 
-### 2.2 카메라 정보 저장
+**연결 상태**는 라이브 뷰와 무관하게 `StreamHealthChecker`가 메인/서브 RTSP URL을 각각 실제로 열어 본 결과다(시작 시, 카메라 추가·수정 시, 이후 60초마다, 끊김 직후). 이미 라이브로 열려 있는 스트림은 다시 열지 않는다.
 
-카메라 정보는 SQLite 데이터베이스에 저장됩니다.
+| 표시 | 뜻 |
+|------|----|
+| Online | 메인·서브 모두 열림(또는 한쪽은 아직 확인 전) |
+| Online (main stream failed) / Online (sub stream failed) | 한쪽만 열림. 툴팁에 실패 사유 |
+| Offline | 둘 다 실패 |
+| Checking... | 아직 결과 없음 |
 
-**저장 경로**: `%APPDATA%/VMS/vms.db`
+라이브 뷰를 닫아도 상태는 바뀌지 않는다. 확인은 접속 + 스트림 정보 읽기까지 하므로, 인증은 통과하지만 패킷이 오지 않는 스트림도 실패로 잡힌다.
 
-**테이블 구조**:
-```sql
-CREATE TABLE cameras (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    ip TEXT NOT NULL,
-    port INTEGER DEFAULT 80,
-    username TEXT,
-    password TEXT,
-    rtsp_url TEXT,
-    rtsp_url_sub TEXT,
-    onvif_path TEXT DEFAULT '/onvif/device_service',
-    type INTEGER DEFAULT 0,
-    recording INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
+## 3. 카메라 추가/편집 (AddCameraDialog)
 
-**구현 파일**: `src/utils/database.cpp`
+### 3.1 ONVIF 타입
 
----
+1. IP, 포트(기본 80), 사용자명, 비밀번호, ONVIF 경로(기본 `/onvif/device_service`) 입력.
+2. **Test Connection**: GetServices → 미디어 URL 없으면 GetCapabilities → 그래도 없으면 device_service를 미디어 URL로 사용. 이어서 GetDeviceInformation(모델·시리얼·제조사·펌웨어 자동 채움), GetProfiles.
+3. 프로필을 해상도순으로 정렬해 **메인=최고 해상도, 서브=최저 해상도**를 기본 선택. 각 프로필의 GetStreamUri로 RTSP URL 표시. 콤보로 변경 가능.
+4. 메인 URL로 우측 미리보기 시작. 연결 로그 표시.
+5. OK → 검증(이름, IP) → 저장.
 
-## 3. ONVIF 지원
+인증: SOAP 본문의 WS‑Security UsernameToken(PasswordDigest). HTTP 401 챌린지가 오면 Basic/Digest로 응답한다. Basic 헤더를 선제적으로 보내지는 않는다.
 
-### 3.1 WS-Discovery
+### 3.2 RTSP 타입
 
-네트워크에서 ONVIF 호환 카메라를 자동으로 검색합니다.
+메인/서브 URL, 사용자명, 비밀번호 직접 입력. IP와 포트는 URL에서 추출. Test Connection으로 미리보기.
 
-**프로토콜**:
-- 멀티캐스트 주소: `239.255.255.250`
-- 포트: `3702`
-- 메시지: SOAP Probe
+## 4. ONVIF 네트워크 설정 (NetworkSettingsDialog)
 
-**구현 파일**: `src/core/onvif_client.cpp`
+- GetNetworkInterfaces로 인터페이스 목록, MAC, DHCP 여부, 수동 IP/프리픽스 표시.
+- DHCP 토글, IP, 서브넷(프리픽스 콤보), 게이트웨이 편집 후 Apply → SetNetworkInterfaces(+1초 후 SetNetworkDefaultGateway).
+- RebootNeeded 응답 시 재부팅 여부 확인 → SystemReboot.
+- DHCP로 할당된 현재 주소도 표시된다. 게이트웨이는 조회하지 않아 항상 비어 있다.
 
-```cpp
-void OnvifClient::discover(int timeout) {
-    // UDP 소켓으로 Probe 전송
-    QString probeMsg = createWsDiscoveryProbe();
-    m_discoverySocket->writeDatagram(
-        probeMsg.toUtf8(), 
-        QHostAddress("239.255.255.250"), 
-        3702
-    );
-}
-```
+## 5. 스트리밍
 
-### 3.2 프로필 획득
+### 5.1 RTSP 수신
 
-카메라의 비디오 프로필 목록을 가져옵니다.
+- FFmpeg `libavformat`, RTSP over TCP 고정.
+- 옵션: `timeout=5s`(소켓 I/O), `max_delay=100ms`, `buffer_size=1MB`, `fflags=nobuffer`. 디먹서가 소비하지 않은 옵션은 경고 로그로 드러난다.
+- 접속·읽기 중 중단은 FFmpeg interrupt callback으로 즉시 빠져나온다. 스트림이 끊기면 그 스트림을 실패로 표시하고 상태바에 알린 뒤 헬스 체크를 다시 돌린다. 자동 재접속은 없다.
+- 열기 실패 사유(`error` 시그널)는 `open()` 전에 연결되므로 로그와 상태바에 남는다.
+- 인증은 URL에 `user:pass@` 형태로 삽입.
 
-**획득 정보**:
-- 프로필 토큰
-- 해상도 (Width x Height)
-- 프레임 레이트
-- 인코딩 (H.264, H.265, MJPEG)
+### 5.2 디코딩
 
-### 3.3 스트림 URL 획득
+- `libavcodec` 소프트웨어 디코드. 코덱은 스트림에서 자동 감지(H.264, H.265, MJPEG 등 FFmpeg가 지원하는 것 전부).
+- 디코더 스레드: 720p 초과 4개, 이하 2개 (FRAME|SLICE), `LOW_DELAY`, `FLAG2_FAST`.
+- YUV → RGB32는 `sws_scale`(BILINEAR), 원본 해상도 그대로 `QImage`로 복사. 스트림 도중 해상도나 픽셀 포맷이 바뀌면 스케일러를 재생성한다.
 
-선택한 프로필의 RTSP URL을 가져옵니다.
+### 5.3 통계
 
-```cpp
-void OnvifClient::getStreamUri(const QString& serviceUrl, 
-                                const QString& profileToken) {
-    // SOAP GetStreamUri 요청
-    // -> rtsp://camera_ip:554/profile_path
-}
-```
+수신/디코드/에러 프레임 수, FPS, 평균 디코드 시간, 수신 바이트. 30프레임마다 갱신. 에러율 5% 초과 시 경고 로그.
 
-### 3.4 PTZ 제어
+## 6. 재생 (Playback 탭)
 
-팬(Pan), 틸트(Tilt), 줌(Zoom)을 제어합니다.
+- "Open File..."로 mp4/mkv/avi/ts 파일을 열어 재생. 재생/일시정지/정지, 0.25×~4× 속도, 슬라이더와 타임라인 클릭으로 탐색.
+- 파일을 연 직후 자동 재생.
+- 녹화 목록이나 카메라·시각 기반 재생은 없다.
 
-**지원 동작**:
-| 동작 | 설명 |
-|------|------|
-| Up | 위로 이동 |
-| Down | 아래로 이동 |
-| Left | 왼쪽 이동 |
-| Right | 오른쪽 이동 |
-| UpLeft | 왼쪽 위 대각선 |
-| UpRight | 오른쪽 위 대각선 |
-| DownLeft | 왼쪽 아래 대각선 |
-| DownRight | 오른쪽 아래 대각선 |
-| ZoomIn | 확대 |
-| ZoomOut | 축소 |
-| Stop | 정지 |
+## 7. 설정과 영속화
 
-**ONVIF PTZ 명령**:
-- `ContinuousMove`: 연속 이동 시작
-- `Stop`: 이동 정지
+| 항목 | 저장 위치 |
+|------|-----------|
+| 카메라 정보 | `%APPDATA%/VMS/VMS/vms.db` (SQLite) |
+| 윈도우 위치·크기, 마지막 레이아웃 | 레지스트리 `HKCU\Software\VMS\VMS` |
+| 로그 | `%APPDATA%/VMS/VMS/vms_debug.log` |
 
-**구현 파일**: `src/ui/ptz_control.cpp`, `src/core/onvif_client.cpp`
-
----
-
-## 4. 스트리밍
-
-### 4.1 RTSP 수신
-
-FFmpeg의 `libavformat`을 사용하여 RTSP 스트림을 수신합니다.
-
-**지원 프로토콜**:
-- RTSP over TCP
-- RTSP over UDP
-
-**설정 옵션**:
-```cpp
-av_dict_set(&options, "rtsp_transport", "tcp", 0);  // TCP 사용
-av_dict_set(&options, "stimeout", "5000000", 0);    // 5초 타임아웃
-av_dict_set(&options, "max_delay", "500000", 0);    // 최대 지연
-```
-
-**구현 파일**: `src/core/stream_receiver.cpp`
-
-### 4.2 비디오 디코딩
-
-FFmpeg의 `libavcodec`을 사용하여 비디오를 디코딩합니다.
-
-**지원 코덱**:
-- H.264 (AVC)
-- H.265 (HEVC)
-- MJPEG
-- MPEG4
-
-**디코딩 흐름**:
-```
-AVPacket → avcodec_send_packet → avcodec_receive_frame → AVFrame
-AVFrame → sws_scale → RGB32 → QImage
-```
-
-### 4.3 프레임 렌더링
-
-`QPainter`를 사용하여 비디오 프레임을 화면에 그립니다.
-
-**최적화**:
-- 33ms 간격으로 화면 갱신 (약 30fps)
-- 화면 크기에 맞게 스케일링
-- 비율 유지 (Aspect Ratio)
-
----
-
-## 5. 녹화
-
-### 5.1 녹화 시작/중지
-
-카메라 스트림을 파일로 저장합니다.
-
-**지원 컨테이너**:
-- MP4
-- MKV
-- TS
-
-**녹화 정보**:
-- 카메라 ID
-- 파일 경로
-- 시작/종료 시간
-- 파일 크기
-
-### 5.2 녹화 파일 관리
-
-녹화 정보는 SQLite에 저장됩니다.
-
-```sql
-CREATE TABLE recordings (
-    id TEXT PRIMARY KEY,
-    camera_id TEXT NOT NULL,
-    file_path TEXT NOT NULL,
-    start_time DATETIME NOT NULL,
-    end_time DATETIME,
-    file_size INTEGER DEFAULT 0,
-    has_audio INTEGER DEFAULT 0
-);
-```
-
-**구현 파일**: `src/core/recorder.cpp`
-
----
-
-## 6. 재생
-
-### 6.1 파일 재생
-
-녹화된 비디오 파일을 재생합니다.
-
-**컨트롤**:
-- 재생 / 일시정지
-- 정지
-- 탐색 (시간 이동)
-- 재생 속도 (0.25x ~ 4x)
-
-### 6.2 타임라인
-
-타임라인 위젯으로 녹화 구간을 시각화합니다.
-
-**기능**:
-- 녹화 구간 표시 (파란색)
-- 알람 구간 표시 (빨간색)
-- 현재 위치 표시 (노란색)
-- 마우스 호버 시간 표시
-- 휠 줌 (확대/축소)
-- Shift + 드래그로 스크롤
-
-**구현 파일**: `src/ui/timeline_widget.cpp`, `src/ui/playback_view.cpp`
-
----
-
-## 7. 설정
-
-### 7.1 윈도우 레이아웃 저장
-
-윈도우 위치, 크기, 도킹 상태가 자동으로 저장됩니다.
-
-**저장 위치**: Windows Registry
-- `HKEY_CURRENT_USER\Software\VMS\VMS`
-
-### 7.2 다크 테마
-
-모던한 다크 테마가 기본 적용됩니다.
-
-**색상 팔레트**:
-- 배경: `#2d2d30`
-- 전경: `#ffffff`
-- 강조: `#007acc`
-
----
+다크 테마(Fusion 스타일 + 커스텀 팔레트)가 항상 적용된다.
 
 ## 8. 단축키
 
-| 단축키 | 기능 |
-|--------|------|
-| `Ctrl+N` | 카메라 추가 |
-| `Ctrl+D` | 카메라 검색 |
-| `Ctrl+,` | 설정 |
-| `F1` | 라이브 뷰 |
-| `F2` | 재생 |
-| `F11` | 전체 화면 |
-| `1` | 1x1 레이아웃 |
-| `2` | 2x2 레이아웃 |
-| `3` | 3x3 레이아웃 |
-| `4` | 4x4 레이아웃 |
-| `Alt+F4` | 종료 |
+| 키 | 기능 |
+|----|------|
+| `F2` | 라이브 그리드 통계 오버레이 토글 |
 
----
+이것이 전부다. 메뉴바는 숨겨져 있다.
 
-## 9. rapidvms 참고 항목
+## 9. 미구현 / 플레이스홀더
 
-본 프로젝트는 rapidvms의 다음 파일들을 참고하여 개발되었습니다.
-
-| 기능 | rapidvms 참고 파일 |
-|------|-------------------|
-| 카메라 관리 | `veuilib/src/server/camera.cpp` |
-| ONVIF 클라이언트 | `veuilib/onvifcpplib/include/onvifclient*.hpp` |
-| PTZ 제어 | `veuilib/src/vvidonvif/vvidonvifc.cpp` |
-| 비디오 그리드 | `veuilib/src/vvidwidget/vscvideowall.cpp` |
-| 비디오 위젯 | `veuilib/src/vvidwidget/vscvwidget.cpp` |
-| 녹화 | `velib/include/vdb/recordsession.hpp` |
-| 재생 | `velib/include/vdb/pbsession.hpp` |
-| 타임라인 | `veuilib/src/cmnui/vvidtimeline.h` |
-| FFmpeg 래퍼 | `xcmnlib/src/ffkit/source/*.cpp` |
+| 항목 | 상태 |
+|------|------|
+| 녹화 | `Recorder` 클래스는 있으나 어디서도 호출되지 않음. `recordings` 테이블도 미사용 |
+| 녹화 스케줄 (Record Schedule 탭) | 안내 문구만 있는 빈 페이지 |
+| 시스템 설정 (Sys. Settings 탭) | 안내 문구만 있는 빈 페이지 |
+| PTZ 제어 | `OnvifClient::ptzMove`와 `PtzControl` 위젯은 있으나 UI에 배치되지 않음 |
+| 카메라 그룹, 드래그 앤 드롭 배치 | 트리는 DragOnly로 설정만 되어 있고 드롭 처리 없음 |
+| 카메라 트리 검색 상자 | 동작 없음 |
+| 자동 재접속 | 없음. 끊김은 감지해 해당 스트림을 실패로 표시하고 상태바에 알린다 |
+| 오디오 | 없음 |
+| 하드웨어 가속 디코딩 | 없음 |

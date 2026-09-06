@@ -24,6 +24,7 @@
 #include <QStatusBar>
 #include <QPainter>
 #include <QShortcut>
+#include <QScopedValueRollback>
 #include <iostream>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -116,6 +117,7 @@ void MainWindow::setupHeaderBar() {
     
     // Tab buttons
     auto createTabButton = [this, headerBar](const QString& text, const QString& iconText) -> QToolButton* {
+        Q_UNUSED(iconText);
         QToolButton* btn = new QToolButton(headerBar);
         btn->setText(text);
         btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
@@ -373,6 +375,16 @@ void MainWindow::setupConnections() {
             this, &MainWindow::onCameraSelected);
     connect(m_cameraTree, &CameraTree::cameraDoubleClicked,
             this, &MainWindow::onCameraDoubleClicked);
+    connect(m_cameraTree, &CameraTree::streamStartRequested,
+            this, &MainWindow::onCameraDoubleClicked);
+    connect(m_cameraTree, &CameraTree::cameraEditRequested,
+            this, &MainWindow::onCameraEditRequested);
+
+    // 리시버가 삭제될 때 그리드가 알아야 한다. 그렇지 않으면 위젯이 죽은 포인터를 들고 있게 된다.
+    connect(m_cameraManager.get(), &CameraManager::streamStopped,
+            this, &MainWindow::onStreamStopped);
+    connect(m_cameraManager.get(), &CameraManager::streamError,
+            this, &MainWindow::onStreamError);
     
     connect(m_onvifClient.get(), &OnvifClient::deviceDiscovered,
             [this](const OnvifDevice& device) {
@@ -434,6 +446,38 @@ void MainWindow::onCameraDoubleClicked(const QString& cameraId) {
         // Live view로 전환
         onShowLiveView();
     }
+}
+
+void MainWindow::onCameraEditRequested(const QString& cameraId) {
+    CameraInfo info = m_cameraManager->getCamera(cameraId);
+    if (info.id.isEmpty()) {
+        return;
+    }
+
+    AddCameraDialog dialog(m_onvifClient.get(), this);
+    dialog.setCameraInfo(info);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        CameraInfo updated = dialog.getCameraInfo();
+        updated.id = cameraId;
+        m_cameraManager->updateCamera(updated);
+        statusBar()->showMessage(tr("Camera updated: %1").arg(updated.name), 3000);
+    }
+}
+
+void MainWindow::onStreamStopped(const QString& cameraId) {
+    if (m_restartingStreams) {
+        return;   // 메인/서브 전환 중. 곧 새 리시버로 교체되므로 슬롯을 비우지 않는다.
+    }
+    if (m_liveGrid) {
+        m_liveGrid->removeStream(cameraId);
+    }
+}
+
+void MainWindow::onStreamError(const QString& cameraId, const QString& message) {
+    CameraInfo info = m_cameraManager->getCamera(cameraId);
+    QString name = info.name.isEmpty() ? cameraId : info.name;
+    statusBar()->showMessage(tr("%1: %2").arg(name, message), 5000);
 }
 
 void MainWindow::onLayoutChanged(int layout) {
@@ -546,6 +590,9 @@ void MainWindow::updateStreamsForLayout() {
     
     bool useSubStream = shouldUseSubStream();
     
+    // restartStream 이 내보내는 streamStopped 로 그리드 슬롯이 비워지지 않도록 표시한다.
+    QScopedValueRollback<bool> restarting(m_restartingStreams, true);
+
     QList<CameraInfo> cameras = m_cameraManager->getAllCameras();
     for (const CameraInfo& camera : cameras) {
         StreamReceiver* receiver = m_cameraManager->getStreamReceiver(camera.id);

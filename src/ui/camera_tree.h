@@ -4,9 +4,9 @@
 #include <QTreeWidget>
 #include <QMap>
 #include <QTimer>
+#include "camera.h"
 
 class CameraManager;
-struct CameraInfo;
 
 class CameraTree : public QTreeWidget {
     Q_OBJECT
@@ -26,12 +26,16 @@ signals:
     void cameraSelected(const QString& cameraId);
     void cameraDoubleClicked(const QString& cameraId);
     void cameraContextMenu(const QString& cameraId, const QPoint& pos);
-    
+    // 컨텍스트 메뉴의 Start Stream / Edit. 실제 처리는 MainWindow 가 한다(그리드 배치, 대화상자).
+    void streamStartRequested(const QString& cameraId);
+    void cameraEditRequested(const QString& cameraId);
+
 protected:
     void contextMenuEvent(QContextMenuEvent* event) override;
-    
+
 private slots:
     void onItemSelectionChanged();
+    void onCameraStatusChanged(const QString& cameraId, CameraStatus status);
     void onItemDoubleClicked(QTreeWidgetItem* item, int column);
     void onDeleteCamera();
     void onEditCamera();

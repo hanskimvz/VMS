@@ -72,6 +72,11 @@ private:
     QPushButton* m_closeBtn = nullptr;
     
     QList<NetworkInterface> m_interfaces;
+
+    // Apply 가 SetNetworkInterfaces 와 SetNetworkDefaultGateway 두 요청을 보내면
+    // networkSettingsChanged 도 두 번 온다. 두 번째가 올 때까지 결과 안내를 미룬다.
+    bool m_gatewayPending = false;
+    bool m_pendingRebootNeeded = false;
 };
 
 #endif // NETWORK_SETTINGS_DIALOG_H

@@ -6,6 +6,7 @@
 #include <QMutex>
 #include <QLabel>
 #include <QTimer>
+#include <QPointer>
 
 class StreamReceiver;
 struct VideoFrame;
@@ -26,7 +27,7 @@ public:
     QString cameraId() const { return m_cameraId; }
     QString cameraName() const { return m_cameraName; }
     
-    bool isPlaying() const { return m_receiver != nullptr; }
+    bool isPlaying() const { return !m_receiver.isNull(); }
     
     void setSelected(bool selected);
     bool isSelected() const { return m_selected; }
@@ -59,8 +60,9 @@ private:
     void drawCameraName(QPainter& painter);
     void drawStats(QPainter& painter);
     
-    StreamReceiver* m_receiver = nullptr;
-    
+    // 리시버는 CameraManager 가 소유하고 언제든 삭제할 수 있다. QPointer 라 삭제되면 자동으로 null 이 된다.
+    QPointer<StreamReceiver> m_receiver;
+
     QString m_cameraId;
     QString m_cameraName;
     

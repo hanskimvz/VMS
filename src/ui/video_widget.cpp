@@ -32,18 +32,18 @@ void VideoWidget::setStreamReceiver(StreamReceiver* receiver) {
     
     m_receiver = receiver;
     if (m_receiver) {
-        connect(m_receiver, &StreamReceiver::frameReady,
+        connect(m_receiver.data(), &StreamReceiver::frameReady,
                 this, &VideoWidget::onFrameReady, Qt::QueuedConnection);
-        connect(m_receiver, &StreamReceiver::statsUpdated,
+        connect(m_receiver.data(), &StreamReceiver::statsUpdated,
                 this, &VideoWidget::onStatsUpdated, Qt::QueuedConnection);
     }
 }
 
 void VideoWidget::removeStreamReceiver() {
     if (m_receiver) {
-        disconnect(m_receiver, nullptr, this, nullptr);
-        m_receiver = nullptr;
+        disconnect(m_receiver.data(), nullptr, this, nullptr);
     }
+    m_receiver = nullptr;
     
     QMutexLocker locker(&m_frameMutex);
     m_currentFrame = QImage();

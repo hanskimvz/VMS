@@ -5,6 +5,7 @@
 #include "add_camera_dialog.h"
 #include "network_settings_dialog.h"
 #include "camera.h"
+#include "local_interfaces.h"
 
 #include <QTimer>
 #include <QShowEvent>
@@ -19,6 +20,7 @@ DeviceManageWidget::DeviceManageWidget(QWidget* parent)
             this, &DeviceManageWidget::onOtherDiscoveryFinished);
     
     setupUi();
+    refreshInterfaceList();
 }
 
 DeviceManageWidget::~DeviceManageWidget() {
@@ -33,6 +35,10 @@ void DeviceManageWidget::setCameraManager(CameraManager* manager) {
         connect(m_cameraManager, &CameraManager::cameraAdded,
                 this, &DeviceManageWidget::refreshAddedDevices);
         connect(m_cameraManager, &CameraManager::cameraRemoved,
+                this, &DeviceManageWidget::refreshAddedDevices);
+        connect(m_cameraManager, &CameraManager::cameraUpdated,
+                this, &DeviceManageWidget::refreshAddedDevices);
+        connect(m_cameraManager, &CameraManager::cameraStatusChanged,
                 this, &DeviceManageWidget::refreshAddedDevices);
         refreshAddedDevices();
     }
@@ -113,10 +119,26 @@ void DeviceManageWidget::setupSearchedDeviceGroup() {
     btnLayout->addWidget(m_addDeviceBtn);
     btnLayout->addWidget(m_modifyIPBtn);
     btnLayout->addWidget(m_manualAddBtn);
+
+    // 프로브를 내보낼 NIC. VPN/가상 어댑터가 기본 경로를 잡고 있는 PC 에서는 이 선택이 검색 성패를 가른다.
+    btnLayout->addSpacing(20);
+    QLabel* ifaceLabel = new QLabel(tr("Interface:"), m_searchedGroup);
+    ifaceLabel->setStyleSheet("color: #cccccc; font-weight: normal;");
+    btnLayout->addWidget(ifaceLabel);
+    m_interfaceCombo = new QComboBox(m_searchedGroup);
+    m_interfaceCombo->setMinimumWidth(240);
+    m_interfaceCombo->setStyleSheet("font-weight: normal;");
+    m_interfaceCombo->setToolTip(tr("Network interface used to send discovery probes.\n"
+                                    "Choose the one connected to the camera LAN, or All."));
+    btnLayout->addWidget(m_interfaceCombo);
     btnLayout->addStretch();
     
     layout->addLayout(btnLayout);
     
+    m_searchStatusLabel = new QLabel(tr("Press Start Search to discover cameras."), m_searchedGroup);
+    m_searchStatusLabel->setStyleSheet("color: #888888; font-weight: normal;");
+    layout->addWidget(m_searchStatusLabel);
+
     // Table
     m_searchedTable = new QTableWidget(this);
     m_searchedTable->setColumnCount(5);
@@ -268,11 +290,23 @@ void DeviceManageWidget::onStartSearch() {
     m_pendingMdnsDevices.clear();
     m_onvifDiscoveryFinished = false;
     m_otherDiscoveryFinished = false;
+
+    const QList<QHostAddress> localAddresses = selectedLocalAddresses();
+    QStringList interfaceLabels;
+    for (const LocalInterface& li : resolveDiscoveryInterfaces(localAddresses)) {
+        interfaceLabels << li.label();
+    }
+    if (interfaceLabels.isEmpty()) {
+        m_searchStatusLabel->setText(tr("No usable IPv4 network interface. Check the network connection."));
+    } else {
+        m_searchStatusLabel->setText(tr("Searching on: %1").arg(interfaceLabels.join(", ")));
+    }
+    qInfo() << "DeviceManageWidget: search interfaces:" << interfaceLabels;
     
     // Start ONVIF WS-Discovery (highest priority)
     if (m_onvifClient) {
         qDebug() << "DeviceManageWidget: Starting ONVIF discovery...";
-        m_onvifClient->discover(5000);
+        m_onvifClient->discover(5000, localAddresses);
     } else {
         qDebug() << "DeviceManageWidget: WARNING - m_onvifClient is null!";
         m_onvifDiscoveryFinished = true;  // Mark as done if no client
@@ -281,7 +315,7 @@ void DeviceManageWidget::onStartSearch() {
     // Start mDNS and UPnP/SSDP discovery
     if (m_deviceDiscovery) {
         qDebug() << "DeviceManageWidget: Starting mDNS/SSDP discovery...";
-        m_deviceDiscovery->startDiscovery(5000);
+        m_deviceDiscovery->startDiscovery(5000, localAddresses);
     } else {
         qDebug() << "DeviceManageWidget: WARNING - m_deviceDiscovery is null!";
         m_otherDiscoveryFinished = true;  // Mark as done if no discovery
@@ -313,6 +347,7 @@ void DeviceManageWidget::onOnvifDiscoveryFinished() {
         qDebug() << "DeviceManageWidget: Both discoveries finished, enabling button";
         m_startSearchBtn->setText(tr("Start Search"));
         m_startSearchBtn->setEnabled(true);
+        m_searchStatusLabel->setText(tr("Search finished: %1 device(s) found.").arg(m_searchedTable->rowCount()));
     }
 }
 
@@ -359,6 +394,7 @@ void DeviceManageWidget::onOtherDiscoveryFinished() {
         qDebug() << "DeviceManageWidget: Both discoveries finished, enabling button";
         m_startSearchBtn->setText(tr("Start Search"));
         m_startSearchBtn->setEnabled(true);
+        m_searchStatusLabel->setText(tr("Search finished: %1 device(s) found.").arg(m_searchedTable->rowCount()));
     } else {
         qDebug() << "DeviceManageWidget: Waiting for ONVIF discovery to finish";
     }
@@ -478,20 +514,37 @@ void DeviceManageWidget::onAddDevice() {
         tr("Password:"), QLineEdit::Password, "", &ok);
     if (!ok) return;
     
-    if (m_cameraManager) {
-        QString model = m_searchedTable->item(row, 3)->text();
-        
+    if (!m_cameraManager || !m_onvifClient) {
+        return;
+    }
+
+    QString model = m_searchedTable->item(row, 3)->text();
+    QString discoveryType = m_searchedTable->item(row, 0)->data(Qt::UserRole + 1).toString();
+
+    // 검색 결과를 그대로 저장하면 스트림 URL 을 모르는 채 추가되어 재생이 안 된다.
+    // (또한 onvifPath 에 전체 URL 이 들어가 getOnvifUrl() 이 깨졌다.)
+    // 더블클릭 경로와 같은 대화상자를 자격 증명이 채워진 상태로 열고 접속 테스트를 자동 실행한다.
+    AddCameraDialog dialog(m_onvifClient, this);
+
+    if (discoveryType == "ONVIF") {
+        dialog.setDeviceInfo(ip, name, serviceUrl, model);
+        dialog.setCredentials(username, password);
+        dialog.startConnectionTest();
+    } else {
         CameraInfo info;
         info.name = name.isEmpty() ? ip : name;
         info.model = model;
         info.ip = ip;
-        info.port = 80;
+        info.port = 554;
+        info.type = CameraType::RTSP;
+        info.rtspUrl = QString("rtsp://%1:554/stream1").arg(ip);
         info.username = username;
         info.password = password;
-        info.onvifPath = serviceUrl;
-        info.type = CameraType::ONVIF;
-        
-        m_cameraManager->addCamera(info);
+        dialog.setCameraInfo(info);
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        m_cameraManager->addCamera(dialog.getCameraInfo());
     }
 }
 
@@ -684,14 +737,37 @@ void DeviceManageWidget::updateAddedDeviceTable() {
                           (cam.type == CameraType::RTSP) ? "RTSP" : "Generic";
         m_addedTable->setItem(row, 4, new QTableWidgetItem(typeStr));
         
-        QString stateStr = (cam.status == CameraStatus::Online) ? tr("Online") :
-                           (cam.status == CameraStatus::Offline) ? tr("Offline") : tr("Unknown");
-        QTableWidgetItem* stateItem = new QTableWidgetItem(stateStr);
+        // Online = 둘 중 하나라도 열림. 하나만 실패하면 어느 쪽인지 표시. Offline = 둘 다 실패.
+        QString stateStr;
+        QColor stateColor;
         if (cam.status == CameraStatus::Online) {
-            stateItem->setForeground(QColor(0, 150, 0));
+            if (cam.mainStreamState == StreamState::Failed) {
+                stateStr = tr("Online (main stream failed)");
+                stateColor = QColor(200, 130, 0);
+            } else if (cam.subStreamState == StreamState::Failed) {
+                stateStr = tr("Online (sub stream failed)");
+                stateColor = QColor(200, 130, 0);
+            } else {
+                stateStr = tr("Online");
+                stateColor = QColor(0, 150, 0);
+            }
+        } else if (cam.status == CameraStatus::Offline) {
+            stateStr = tr("Offline");
+            stateColor = QColor(150, 0, 0);
         } else {
-            stateItem->setForeground(QColor(150, 0, 0));
+            stateStr = tr("Checking...");
+            stateColor = QColor(128, 128, 128);
         }
+        QTableWidgetItem* stateItem = new QTableWidgetItem(stateStr);
+        stateItem->setForeground(stateColor);
+        auto describe = [this](StreamState state, const QString& error) {
+            if (state == StreamState::Ok) return tr("OK");
+            if (state == StreamState::Failed) return error.isEmpty() ? tr("Failed") : tr("Failed: %1").arg(error);
+            return tr("Checking...");
+        };
+        stateItem->setToolTip(tr("Main stream: %1\nSub stream: %2")
+            .arg(describe(cam.mainStreamState, cam.mainStreamError))
+            .arg(describe(cam.subStreamState, cam.subStreamError)));
         m_addedTable->setItem(row, 5, stateItem);
         
         m_addedTable->setItem(row, 6, new QTableWidgetItem(""));
@@ -703,6 +779,35 @@ void DeviceManageWidget::updateAddedDeviceTable() {
 void DeviceManageWidget::showEvent(QShowEvent* event) {
     QWidget::showEvent(event);
     refreshAddedDevices();
+    refreshInterfaceList();
+}
+
+void DeviceManageWidget::refreshInterfaceList() {
+    if (!m_interfaceCombo) {
+        return;
+    }
+    const QString previous = m_interfaceCombo->currentData().toString();
+
+    m_interfaceCombo->blockSignals(true);
+    m_interfaceCombo->clear();
+    m_interfaceCombo->addItem(tr("All interfaces"), QString());
+    for (const LocalInterface& li : discoveryInterfaces()) {
+        m_interfaceCombo->addItem(li.label(), li.address.toString());
+    }
+    int index = m_interfaceCombo->findData(previous);
+    m_interfaceCombo->setCurrentIndex(index >= 0 ? index : 0);
+    m_interfaceCombo->blockSignals(false);
+}
+
+QList<QHostAddress> DeviceManageWidget::selectedLocalAddresses() const {
+    QList<QHostAddress> result;
+    if (m_interfaceCombo) {
+        const QString data = m_interfaceCombo->currentData().toString();
+        if (!data.isEmpty()) {
+            result.append(QHostAddress(data));
+        }
+    }
+    return result;
 }
 
 void DeviceManageWidget::updateSearchedGroupTitle() {

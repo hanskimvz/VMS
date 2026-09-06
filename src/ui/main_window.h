@@ -28,6 +28,9 @@ private slots:
     void onDiscoverCameras();
     void onCameraSelected(const QString& cameraId);
     void onCameraDoubleClicked(const QString& cameraId);
+    void onCameraEditRequested(const QString& cameraId);
+    void onStreamStopped(const QString& cameraId);
+    void onStreamError(const QString& cameraId, const QString& message);
     void onLayoutChanged(int layout);
     void onShowLiveView();
     void onShowDeviceManage();
@@ -79,6 +82,9 @@ private:
     QLabel* m_statusLabel = nullptr;
     
     QString m_selectedCameraId;
+
+    // 메인/서브 전환으로 스트림을 재시작하는 동안 true. 이때 오는 streamStopped 는 그리드 슬롯을 유지한다.
+    bool m_restartingStreams = false;
 };
 
 #endif // MAIN_WINDOW_H

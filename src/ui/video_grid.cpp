@@ -98,7 +98,7 @@ void VideoGrid::assignStreamsToWidgets() {
         VideoWidget* widget = m_widgets[widgetIndex];
         widget->setCameraId(stream.cameraId);
         widget->setCameraName(stream.name);
-        widget->setStreamReceiver(stream.receiver);
+        widget->setStreamReceiver(stream.receiver.data());
         
         m_streams[stream.cameraId].slotIndex = widgetIndex;
         widgetIndex++;
@@ -185,7 +185,15 @@ void VideoGrid::addStream(const QString& cameraId, const QString& name, StreamRe
     
     int slot = findEmptySlot();
     if (slot < 0) {
+        // 빈 셀이 없으면 하나를 빼앗는다. 빼앗긴 스트림의 매핑을 남겨 두면 두 스트림이
+        // 같은 슬롯을 가리키게 되므로 목록에서도 제거한다.
         slot = m_streams.size() % m_widgets.size();
+        for (auto it = m_streams.begin(); it != m_streams.end(); ++it) {
+            if (it->slotIndex == slot) {
+                m_streams.erase(it);
+                break;
+            }
+        }
     }
     
     StreamInfo stream;

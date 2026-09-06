@@ -13,6 +13,9 @@
 #include <QInputDialog>
 #include <QSet>
 #include <QList>
+#include <QComboBox>
+#include <QLabel>
+#include <QHostAddress>
 
 #include "device_discovery.h"
 
@@ -67,6 +70,8 @@ private:
     bool isDeviceAlreadyAdded(const QString& ip) const;
     void updateSearchedGroupTitle();
     void updateAddedGroupTitle();
+    void refreshInterfaceList();
+    QList<QHostAddress> selectedLocalAddresses() const;   // 비어 있으면 모든 인터페이스
     
     CameraManager* m_cameraManager = nullptr;
     OnvifClient* m_onvifClient = nullptr;
@@ -86,6 +91,8 @@ private:
     QPushButton* m_addDeviceBtn = nullptr;
     QPushButton* m_modifyIPBtn = nullptr;
     QPushButton* m_manualAddBtn = nullptr;
+    QComboBox* m_interfaceCombo = nullptr;       // 프로브를 보낼 NIC 선택 (기본: 전체)
+    QLabel* m_searchStatusLabel = nullptr;
     
     // Added device section
     QGroupBox* m_addedGroup = nullptr;

@@ -5,6 +5,7 @@
 #include <QGridLayout>
 #include <QVector>
 #include <QMap>
+#include <QPointer>
 
 class VideoWidget;
 class StreamReceiver;
@@ -12,7 +13,7 @@ class StreamReceiver;
 struct StreamInfo {
     QString cameraId;
     QString name;
-    StreamReceiver* receiver = nullptr;
+    QPointer<StreamReceiver> receiver;   // CameraManager 소유. 삭제되면 자동으로 null
     int slotIndex = -1;
 };
 

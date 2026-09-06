@@ -5,7 +5,9 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QUdpSocket>
+#include <QHostAddress>
 #include <QList>
+#include <QSet>
 #include <QTimer>
 #include <QMap>
 
@@ -86,7 +88,8 @@ public:
     explicit OnvifClient(QObject* parent = nullptr);
     ~OnvifClient();
     
-    void discover(int timeout = 3000);
+    // WS-Discovery 프로브를 보낸다. localAddresses 가 비어 있으면 사용 가능한 모든 IPv4 인터페이스로 보낸다.
+    void discover(int timeout = 3000, const QList<QHostAddress>& localAddresses = QList<QHostAddress>());
     void stopDiscovery();
     
     void setCredentials(const QString& username, const QString& password);
@@ -114,6 +117,7 @@ public:
 signals:
     void deviceDiscovered(const OnvifDevice& device);
     void discoveryFinished();
+    void discoveryInfo(const QString& message);   // 어느 인터페이스로 보냈는지 등 진행 정보
     void capabilitiesReceived(const OnvifCapabilities& capabilities);
     void deviceInformationReceived(const OnvifDeviceInfo& info);
     void profilesReceived(const QList<OnvifProfile>& profiles);
@@ -141,7 +145,8 @@ private:
     QString createSoapEnvelope(const QString& body) const;
     QString createSecurityHeader() const;
     
-    void parseDiscoveryResponse(const QByteArray& data);
+    void sendDiscoveryProbe();
+    void parseDiscoveryResponse(const QByteArray& data, const QHostAddress& sender);
     void parseCapabilitiesResponse(const QByteArray& data);
     void parseServicesResponse(const QByteArray& data);
     void parseDeviceInformationResponse(const QByteArray& data);
@@ -157,7 +162,8 @@ private:
     
     void retryRequest(QNetworkReply* reply);
     
-    QUdpSocket* m_discoverySocket = nullptr;
+    QList<QUdpSocket*> m_discoverySockets;    // 인터페이스당 1개
+    QSet<QString> m_discoveredAddresses;      // 이번 검색에서 이미 보고한 장치 IP
     QNetworkAccessManager* m_networkManager;
     QTimer* m_discoveryTimer;
     QTimer* m_retryTimer = nullptr;

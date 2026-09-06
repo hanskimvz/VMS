@@ -84,10 +84,12 @@ void CameraTree::setCameraManager(CameraManager* manager) {
     
     if (m_cameraManager) {
         connect(m_cameraManager, &CameraManager::cameraStatusChanged,
-                this, &CameraTree::refreshCameras);
+                this, &CameraTree::onCameraStatusChanged);
         connect(m_cameraManager, &CameraManager::cameraAdded,
                 this, &CameraTree::refreshCameras);
         connect(m_cameraManager, &CameraManager::cameraRemoved,
+                this, &CameraTree::refreshCameras);
+        connect(m_cameraManager, &CameraManager::cameraUpdated,
                 this, &CameraTree::refreshCameras);
     }
     
@@ -145,9 +147,12 @@ void CameraTree::addCameraItem(const CameraInfo& camera) {
     item->setToolTip(0, QString("%1\nIP: %2\nStatus: %3")
         .arg(camera.name)
         .arg(camera.ip)
-        .arg(camera.status == CameraStatus::Online ? tr("Online") : tr("Offline")));
+        .arg(camera.status == CameraStatus::Online ? tr("Online") :
+             camera.status == CameraStatus::Offline ? tr("Offline") : tr("Checking...")));
     
-    bool isOnline = (camera.status == CameraStatus::Online);
+    // 아이콘은 "도달 가능"(30초 TCP 핑) 여부다. 스트리밍 여부(CameraStatus)와는 별개이므로
+    // 이미 핑으로 알아낸 값이 있으면 그것을 유지한다.
+    bool isOnline = m_cameraStatusCache.value(camera.id, camera.status == CameraStatus::Online);
     m_cameraStatusCache[camera.id] = isOnline;
     item->setIcon(0, createStatusIcon(isOnline));
     
@@ -251,9 +256,11 @@ void CameraTree::contextMenuEvent(QContextMenuEvent* event) {
         "QMenu::separator { background-color: #3f3f46; height: 1px; margin: 4px 10px; }"
     );
     
-    bool isOnline = m_cameraStatusCache.value(cameraId, false);
-    
-    if (isOnline) {
+    // 메뉴는 실제 스트리밍 여부로 결정한다. 핑 결과(도달 가능)와 혼동하면
+    // 재생 중이 아닌 카메라에 "Stop Stream" 이 뜬다.
+    bool isStreaming = m_cameraManager && m_cameraManager->getStreamReceiver(cameraId) != nullptr;
+
+    if (isStreaming) {
         menu.addAction(tr("Stop Stream"), this, &CameraTree::onStopStream);
     } else {
         menu.addAction(tr("Start Stream"), this, &CameraTree::onStartStream);
@@ -277,8 +284,17 @@ QString CameraTree::getSelectedCameraId() const {
 
 void CameraTree::onStartStream() {
     QString cameraId = getSelectedCameraId();
-    if (!cameraId.isEmpty() && m_cameraManager) {
-        m_cameraManager->startStream(cameraId);
+    if (!cameraId.isEmpty()) {
+        // CameraManager 를 직접 부르면 그리드에 배치되지 않아 화면 없이 디코드만 한다.
+        emit streamStartRequested(cameraId);
+    }
+}
+
+void CameraTree::onCameraStatusChanged(const QString& cameraId, CameraStatus status) {
+    // 스트림이 열렸다는 것은 도달 가능하다는 뜻이므로 핑을 기다리지 않고 바로 반영한다.
+    // 스트림이 닫힌 것은 도달 불가를 뜻하지 않으므로 그대로 둔다.
+    if (status == CameraStatus::Online) {
+        updateCameraStatus(cameraId, true);
     }
 }
 
@@ -291,8 +307,8 @@ void CameraTree::onStopStream() {
 
 void CameraTree::onEditCamera() {
     QString cameraId = getSelectedCameraId();
-    if (cameraId.isEmpty()) {
-        return;
+    if (!cameraId.isEmpty()) {
+        emit cameraEditRequested(cameraId);
     }
 }
 

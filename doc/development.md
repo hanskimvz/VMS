@@ -1,408 +1,206 @@
 # VMS 개발 가이드
 
-## 개발 환경 설정
+마지막 검토: 2026‑09‑06.
 
-### 1. MSYS2 설치
+## 1. 개발 환경
 
-[MSYS2](https://www.msys2.org/)를 다운로드하여 설치합니다.
+### 1.1 도구 체인
 
-### 2. 필수 패키지 설치
+| 구성요소 | 버전 (검증됨) |
+|----------|---------------|
+| OS | Windows 10/11 64‑bit |
+| MSYS2 MinGW64 GCC | 15.2 |
+| Qt6 | 6.10 |
+| FFmpeg | 8.0.1 (`avcodec-62`, `avformat-62`, `avutil-60`, `swscale-9`, `swresample-6`) |
+| CMake | 3.21+ |
+| SQLite | 3.x (Qt SQL 드라이버 경유) |
 
-MSYS2 MinGW64 셸에서 다음 명령을 실행합니다:
+### 1.2 설치
+
+MSYS2 MinGW64 셸에서:
 
 ```bash
-# 시스템 업데이트
 pacman -Syu
-
-# 개발 도구
-pacman -S mingw-w64-x86_64-gcc
-pacman -S mingw-w64-x86_64-cmake
-pacman -S mingw-w64-x86_64-ninja
-
-# Qt6
-pacman -S mingw-w64-x86_64-qt6-base
-pacman -S mingw-w64-x86_64-qt6-tools
-
-# FFmpeg
-pacman -S mingw-w64-x86_64-ffmpeg
-
-# SQLite
-pacman -S mingw-w64-x86_64-sqlite3
+pacman -S mingw-w64-x86_64-{gcc,cmake,ninja,qt6-base,qt6-tools,ffmpeg,sqlite3}
 ```
 
-### 3. IDE 설정
+FFmpeg는 `pkg-config`로 찾는다. MinGW64 셸이 아니면 `PKG_CONFIG_PATH`에 `C:/msys64/mingw64/lib/pkgconfig`가 있어야 한다.
 
-**VS Code 권장 확장**:
-- C/C++ (Microsoft)
-- CMake Tools
-- Qt tools
+### 1.3 IDE
 
-**Qt Creator**:
-- Kit: MinGW 64-bit
-- CMake: MSYS2 cmake
+- VS Code: C/C++, CMake Tools 확장. 키트는 MSYS2 MinGW64 GCC.
+- Qt Creator: Kit = MinGW 64‑bit, CMake = MSYS2 cmake.
 
----
-
-## 빌드
-
-### Debug 빌드
+## 2. 빌드
 
 ```bash
-mkdir build-debug && cd build-debug
-cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug ..
-cmake --build . -j4
+cd d:/Projects/VMS
+
+# Debug (저장소의 build/는 이 설정으로 생성됨)
+cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug
+cmake --build build -j4
+
+# Release
+cmake -S . -B build-release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release -j4
+
+# Ninja (더 빠름)
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C build
 ```
 
-### Release 빌드
+실행: `./build/VMS.exe`. 로그는 `%APPDATA%/VMS/VMS/vms_debug.log`에 쓰인다. 빌드는 `-Wall -Wextra`에서 경고 0을 유지한다.
 
-```bash
-mkdir build-release && cd build-release
-cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ..
-cmake --build . -j4
-```
+테스트 스위트와 린터는 없다. 검증은 빌드 → 실행 → 로그 확인이다.
 
-### Ninja 사용 (더 빠름)
-
-```bash
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
-ninja
-```
-
----
-
-## 프로젝트 구조
+## 3. 프로젝트 구조
 
 ```
-src/
-├── main.cpp                 # 애플리케이션 진입점
-├── core/                    # 비즈니스 로직
-│   ├── camera.h             # 카메라 데이터 구조
-│   ├── camera_manager.*     # 카메라 관리
-│   ├── stream_receiver.*    # RTSP 스트림 수신
-│   ├── video_decoder.*      # 비디오 디코딩
-│   ├── recorder.*           # 녹화
-│   ├── onvif_client.*       # ONVIF 클라이언트
-│   └── playback_controller.*# 재생 컨트롤
-├── ui/                      # 사용자 인터페이스
-│   ├── main_window.*        # 메인 윈도우
-│   ├── video_widget.*       # 비디오 표시 위젯
-│   ├── video_grid.*         # 비디오 그리드
-│   ├── camera_tree.*        # 카메라 트리뷰
-│   ├── playback_view.*      # 재생 화면
-│   ├── timeline_widget.*    # 타임라인
-│   ├── ptz_control.*        # PTZ 컨트롤
-│   └── add_camera_dialog.*  # 카메라 추가 대화상자
-└── utils/                   # 유틸리티
-    └── database.*           # SQLite 래퍼
+VMS/
+├── CMakeLists.txt
+├── CLAUDE.md                # AI 코딩 도구용 요약
+├── README.md
+├── deploy.bat               # Release 빌드 → deploy/ 폴더 생성
+├── cam_device_manager.bat   # Camera/ Python 도구 실행
+├── doc/                     # 이 문서들 (doc/README.md가 목차)
+├── src/
+│   ├── main.cpp             # 로그 핸들러 설치, FFmpeg 네트워크 초기화, MainWindow
+│   ├── core/                # CameraManager, StreamReceiver, OnvifClient, DeviceDiscovery,
+│   │                        # PlaybackController, Recorder(미연결), VideoDecoder(미연결)
+│   ├── ui/                  # MainWindow, VideoGrid, VideoWidget, CameraTree, DeviceManageWidget,
+│   │                        # AddCameraDialog, NetworkSettingsDialog, PlaybackView, TimelineWidget,
+│   │                        # PtzControl(미연결)
+│   ├── utils/database.*     # SQLite 래퍼
+│   └── image/logo.png
+├── resources/resources.qrc
+├── Camera/                  # 별도 PyQt5 도구: 특정 벤더 HTTP JSON API(/api/v1/...) 설정 도구. CMake 빌드와 무관
+├── OnViF/discovery.py       # WS-Discovery 실험 스크립트
+├── python-3.8.10-embed-amd64/  # Camera/ 도구용 임베디드 파이썬 (git 제외)
+└── rapidvms/                # 참고용 원본 (git 제외, AGPL). 코드 복사 금지
 ```
 
----
+## 4. 코딩 규칙
 
-## 코딩 규칙
+### 4.1 네이밍
 
-### 네이밍
-
-| 항목 | 규칙 | 예시 |
-|------|------|------|
+| 항목 | 규칙 | 예 |
+|------|------|----|
 | 클래스 | PascalCase | `CameraManager` |
 | 함수 | camelCase | `startStream()` |
-| 멤버 변수 | m_camelCase | `m_cameras` |
-| 상수 | UPPER_SNAKE | `MAX_CAMERAS` |
+| 슬롯 | `onXxx()` | `onCameraAdded()` |
+| 멤버 변수 | `m_camelCase` | `m_cameras` |
+| 상수 | UPPER_SNAKE | `MAX_RETRIES` |
 | 파일 | snake_case | `camera_manager.cpp` |
 
-### 헤더 가드
+### 4.2 헤더
+
+`#ifndef CAMERA_MANAGER_H` 스타일 가드. `#pragma once`는 쓰지 않는다. FFmpeg 헤더는 반드시 `extern "C" { }`로 감싼다.
+
+인클루드 경로는 평평하다. `src/`, `src/core`, `src/ui`, `src/utils`가 모두 include 경로라 `#include "camera_manager.h"`로 어디서든 접근한다.
+
+### 4.3 새 파일 추가
+
+`CMakeLists.txt`의 `CORE_SOURCES`/`CORE_HEADERS`, `UI_SOURCES`/`UI_HEADERS`, `UTILS_*`에 **헤더까지** 추가한다. AUTOMOC이 `Q_OBJECT` 헤더를 찾으려면 목록에 있어야 한다.
+
+### 4.4 Qt 시그널/슬롯
 
 ```cpp
-#ifndef CAMERA_MANAGER_H
-#define CAMERA_MANAGER_H
-
-// ...
-
-#endif // CAMERA_MANAGER_H
-```
-
-### Qt 시그널/슬롯
-
-```cpp
-// 헤더
 signals:
     void cameraAdded(const QString& id);
-
 private slots:
     void onCameraAdded(const QString& id);
 
-// 연결
 connect(m_cameraManager, &CameraManager::cameraAdded,
         this, &MainWindow::onCameraAdded);
 ```
 
-### 메모리 관리
+스레드를 넘는 시그널은 값 타입(`VideoFrame`, `StreamStats`)만 실어 보낸다. 복사 가능한 구조체면 별도 등록 없이 큐드 커넥션이 된다. 원시 포인터를 스레드 너머로 보내지 않는다.
 
-- Qt 객체는 부모-자식 관계로 관리
-- Core 객체는 `std::unique_ptr` 또는 명시적 delete
-- FFmpeg 리소스는 반드시 정리 함수 호출
+### 4.5 메모리
 
-```cpp
-// Qt 객체
-m_videoWidget = new VideoWidget(this);  // this가 부모
+- Qt 객체는 부모‑자식으로 관리. `MainWindow`의 `CameraManager`, `OnvifClient`는 `unique_ptr`이면서 부모도 `this`다(먼저 `unique_ptr`이 지우고, 지워진 자식은 부모 목록에서 빠지므로 이중 해제는 없다).
+- FFmpeg 컨텍스트를 가진 클래스는 `cleanup()`을 두고 소멸자와 재오픈 시 호출한다.
+- `QObject`를 다른 객체가 참조 중일 때 지우려면 `deleteLater()`를 쓰고, 참조하는 쪽은 `QPointer`나 `destroyed` 시그널로 방어한다(known‑issues 1의 교훈).
 
-// Core 객체
-m_cameraManager = std::make_unique<CameraManager>(this);
+### 4.6 로깅
 
-// FFmpeg
-if (m_formatCtx) {
-    avformat_close_input(&m_formatCtx);
-}
-```
+`qDebug/qWarning/qCritical`만 쓴다. `main.cpp`의 핸들러가 stderr와 `%APPDATA%/VMS/VMS/vms_debug.log`로 보내며 뮤텍스로 직렬화되어 있어 워커 스레드에서 불러도 된다. 비밀번호가 포함된 URL이나 SOAP 본문을 로그에 남기지 않는다.
 
----
+## 5. FFmpeg 패턴
 
-## 새 기능 추가
-
-### 1. 새 Core 클래스 추가
-
-1. `src/core/`에 헤더와 소스 파일 생성
-2. `CMakeLists.txt`의 `CORE_SOURCES`와 `CORE_HEADERS`에 추가
-3. 필요한 Qt 모듈 의존성 확인
-
-### 2. 새 UI 위젯 추가
-
-1. `src/ui/`에 헤더와 소스 파일 생성
-2. `CMakeLists.txt`의 `UI_SOURCES`와 `UI_HEADERS`에 추가
-3. `MainWindow`에서 인스턴스 생성 및 배치
-
-### 3. 새 데이터베이스 테이블 추가
-
-1. `Database::createTables()`에 CREATE TABLE 추가
-2. CRUD 함수 구현
-3. 관련 Core 클래스에서 호출
-
----
-
-## FFmpeg 사용
-
-### 스트림 열기
+### 5.1 RTSP 열기 (FFmpeg 8 옵션명)
 
 ```cpp
-AVFormatContext* formatCtx = avformat_alloc_context();
 AVDictionary* options = nullptr;
 av_dict_set(&options, "rtsp_transport", "tcp", 0);
+av_dict_set(&options, "timeout", "5000000", 0);   // µs. FFmpeg 5+에서 stimeout 대신
+av_dict_set(&options, "max_delay", "100000", 0);
+int ret = avformat_open_input(&fmt, url, nullptr, &options);
+av_dict_free(&options);   // 소비되지 않은 옵션이 남아 있으면 이름이 틀린 것
+```
 
-int ret = avformat_open_input(&formatCtx, url, nullptr, &options);
-av_dict_free(&options);
+옵션명이 맞는지는 `ffmpeg -h demuxer=rtsp`로 확인한다.
 
-if (ret < 0) {
-    // 에러 처리
+### 5.2 블로킹 읽기 중단
+
+```cpp
+static int interruptCb(void* ctx) {
+    return static_cast<StreamReceiver*>(ctx)->shouldStop() ? 1 : 0;
 }
-
-ret = avformat_find_stream_info(formatCtx, nullptr);
+fmt->interrupt_callback.callback = interruptCb;
+fmt->interrupt_callback.opaque = this;
 ```
 
-### 디코더 초기화
+`avformat_open_input` 전에 설정한다. 이것이 있으면 `QThread::terminate()`가 필요 없다.
+
+### 5.3 디코드
 
 ```cpp
-AVCodecParameters* codecpar = formatCtx->streams[videoIndex]->codecpar;
-const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
-AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
-
-avcodec_parameters_to_context(codecCtx, codecpar);
-avcodec_open2(codecCtx, codec, nullptr);
-```
-
-### 프레임 디코딩
-
-```cpp
-AVPacket* packet = av_packet_alloc();
-AVFrame* frame = av_frame_alloc();
-
-while (av_read_frame(formatCtx, packet) >= 0) {
-    if (packet->stream_index == videoIndex) {
-        avcodec_send_packet(codecCtx, packet);
-        if (avcodec_receive_frame(codecCtx, frame) >= 0) {
-            // 프레임 처리
-        }
-    }
-    av_packet_unref(packet);
+avcodec_send_packet(codecCtx, packet);
+while (avcodec_receive_frame(codecCtx, frame) == 0) {
+    // 프레임 처리
 }
 ```
 
-### YUV → RGB 변환
+프레임 스레딩을 켰다면 `receive_frame`을 `EAGAIN`이 나올 때까지 반복해야 프레임을 잃지 않는다.
+
+### 5.4 YUV → RGB
 
 ```cpp
-SwsContext* swsCtx = sws_getContext(
-    width, height, AV_PIX_FMT_YUV420P,
-    width, height, AV_PIX_FMT_RGB32,
-    SWS_BILINEAR, nullptr, nullptr, nullptr
-);
-
-sws_scale(swsCtx,
-    frame->data, frame->linesize, 0, height,
-    frameRGB->data, frameRGB->linesize
-);
-
-QImage image(frameRGB->data[0], width, height, 
-             frameRGB->linesize[0], QImage::Format_RGB32);
+sws_scale(swsCtx, frame->data, frame->linesize, 0, height,
+          frameRGB->data, frameRGB->linesize);
+QImage img(frameRGB->data[0], width, height, frameRGB->linesize[0], QImage::Format_RGB32);
+emit frameReady(img.copy());   // 버퍼가 재사용되므로 반드시 복사
 ```
 
----
+## 6. ONVIF 패턴
 
-## ONVIF 구현
+SOAP 본문은 `OnvifClient::create*Request()`에서 문자열로 만들고 `createSoapEnvelope()`가 WS‑Security 헤더를 붙인다. 새 명령을 추가하려면:
 
-### WS-Discovery Probe
+1. `createXxxRequest()` 작성, `SOAPAction` 헤더 값 확인(WSDL의 `wsa:Action`).
+2. `m_networkManager->post()` 후 `reply->setProperty("requestType", "Xxx")`.
+3. `onHttpFinished()`의 분기에 `parseXxxResponse()` 추가.
+4. 응답은 `QXmlStreamReader`로 로컬 이름만 비교한다(네임스페이스 접두사는 카메라마다 다르다).
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<e:Envelope xmlns:e="http://www.w3.org/2003/05/soap-envelope"
-            xmlns:w="http://schemas.xmlsoap.org/ws/2004/08/addressing"
-            xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery"
-            xmlns:dn="http://www.onvif.org/ver10/network/wsdl">
-  <e:Header>
-    <w:MessageID>uuid:...</w:MessageID>
-    <w:To>urn:schemas-xmlsoap-org:ws:2005:04:discovery</w:To>
-    <w:Action>http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe</w:Action>
-  </e:Header>
-  <e:Body>
-    <d:Probe>
-      <d:Types>dn:NetworkVideoTransmitter</d:Types>
-    </d:Probe>
-  </e:Body>
-</e:Envelope>
-```
+WS‑Security PasswordDigest = `Base64(SHA1(nonce + created + password))`, `created`는 UTC `yyyy-MM-ddTHH:mm:ssZ`. 카메라와 PC의 시계가 5분 이상 어긋나면 인증이 실패하는 카메라가 있다.
 
-### GetProfiles 요청
-
-```xml
-<trt:GetProfiles xmlns:trt="http://www.onvif.org/ver10/media/wsdl"/>
-```
-
-### GetStreamUri 요청
-
-```xml
-<trt:GetStreamUri xmlns:trt="http://www.onvif.org/ver10/media/wsdl">
-  <trt:StreamSetup>
-    <tt:Stream xmlns:tt="http://www.onvif.org/ver10/schema">RTP-Unicast</tt:Stream>
-    <tt:Transport xmlns:tt="http://www.onvif.org/ver10/schema">
-      <tt:Protocol>RTSP</tt:Protocol>
-    </tt:Transport>
-  </trt:StreamSetup>
-  <trt:ProfileToken>profile_token</trt:ProfileToken>
-</trt:GetStreamUri>
-```
-
-### WS-Security (UsernameToken)
-
-```xml
-<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/...">
-  <wsse:UsernameToken>
-    <wsse:Username>admin</wsse:Username>
-    <wsse:Password Type="...#PasswordDigest">base64(sha1(nonce+created+password))</wsse:Password>
-    <wsse:Nonce>base64(nonce)</wsse:Nonce>
-    <wsu:Created>2024-01-01T00:00:00Z</wsu:Created>
-  </wsse:UsernameToken>
-</wsse:Security>
-```
-
----
-
-## 디버깅
-
-### 로그 출력
-
-```cpp
-#include <QDebug>
-
-qDebug() << "Camera connected:" << camera.name;
-qWarning() << "Stream error:" << error;
-qCritical() << "Fatal error:" << message;
-```
-
-### FFmpeg 에러 처리
-
-```cpp
-char errbuf[256];
-av_strerror(ret, errbuf, sizeof(errbuf));
-qWarning() << "FFmpeg error:" << errbuf;
-```
-
-### Qt 디버그 환경변수
+## 7. 디버깅
 
 ```bash
-export QT_DEBUG_PLUGINS=1
-export QT_LOGGING_RULES="qt.network.*=true"
+export QT_DEBUG_PLUGINS=1                       # 플러그인 로딩 문제
+export QT_LOGGING_RULES="qt.network.*=true"     # HTTP/소켓 상세
 ```
 
----
+FFmpeg 에러 코드는 `av_strerror(ret, buf, sizeof buf)`로 문자열화한다.
 
-## 테스트
+공개 테스트 RTSP: `rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4`
+ONVIF 시뮬레이터: ONVIF Device Test Tool (onvif.org)
 
-### 테스트 RTSP 스트림
+## 8. 배포
 
-공개 RTSP 테스트 스트림:
-- `rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4`
+1. Release 빌드를 `build/`에 만든다(`deploy.bat`이 `build\VMS.exe`를 찾는다).
+2. `deploy.bat` 실행 → `windeployqt` + FFmpeg/MinGW DLL을 `deploy/`로 복사.
+3. FFmpeg를 업그레이드하면 `deploy.bat`의 `FFMPEG_DLLS` 버전 접미사를 갱신한다. 누락 DLL은 MinGW64 셸에서 `ldd build/VMS.exe | grep mingw`로 확인.
 
-### ONVIF 시뮬레이터
+## 9. 다음 작업
 
-- [ONVIF Device Test Tool](https://www.onvif.org/profiles/conformance/)
-- 실제 IP 카메라 없이 ONVIF 기능 테스트 가능
-
----
-
-## 배포
-
-### 필요 DLL 확인
-
-```bash
-ldd VMS.exe | grep mingw
-```
-
-### 배포 패키지 구성
-
-```
-VMS/
-├── VMS.exe
-├── Qt6Core.dll
-├── Qt6Gui.dll
-├── Qt6Widgets.dll
-├── Qt6Network.dll
-├── Qt6Sql.dll
-├── Qt6OpenGLWidgets.dll
-├── avcodec-*.dll
-├── avformat-*.dll
-├── avutil-*.dll
-├── swscale-*.dll
-├── swresample-*.dll
-├── platforms/
-│   └── qwindows.dll
-├── sqldrivers/
-│   └── qsqlite.dll
-└── styles/
-    └── qwindowsvistastyle.dll
-```
-
-### windeployqt 사용
-
-```bash
-windeployqt --release VMS.exe
-```
-
----
-
-## 향후 개발 계획
-
-### 단기
-
-- [ ] 하드웨어 가속 디코딩 (VAAPI, NVDEC)
-- [ ] 오디오 재생 지원
-- [ ] 스냅샷 내보내기
-
-### 중기
-
-- [ ] 모션 감지
-- [ ] 이벤트 알람
-- [ ] 녹화 스케줄링
-
-### 장기
-
-- [ ] 클라이언트-서버 아키텍처
-- [ ] 웹 인터페이스
-- [ ] AI 분석 (객체 감지)
+우선순위와 로드맵은 [known-issues.md](known-issues.md)와 [intelligent-vms-research.md](intelligent-vms-research.md) 14절을 본다.
